@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'login',
+    'home',
 ]
 
 MIDDLEWARE = [
@@ -95,6 +96,12 @@ EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = "apikey"
 EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+
+# URL dùng để truy cập file từ trình duyệt (ví dụ: http://127.0.0.1:8000/media/anh.jpg)
+MEDIA_URL = '/media/'
+
+# Đường dẫn vật lý đến thư mục chứa file trên ổ cứng máy tính
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DATABASES = {
     'default': {

@@ -23,7 +23,6 @@ type ApiSuccessResponse = {
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || "";
 
-// Sửa lại nếu urls.py của bạn khác path này
 const SEND_OTP_URL = `${API_BASE_URL}/auth/send-otp/`;
 const VERIFY_OTP_URL = `${API_BASE_URL}/auth/verify-otp/`;
 const RESET_PASSWORD_URL = `${API_BASE_URL}/auth/reset-password/`;
