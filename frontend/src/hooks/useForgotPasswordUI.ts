@@ -191,7 +191,7 @@ export function useForgotPasswordFlow() {
     if (!normalizedEmail) {
       nextErrors.email = "Vui lòng nhập email";
     } else if (!EMAIL_REGEX.test(normalizedEmail)) {
-      nextErrors.email = "Email không hợp lệ";
+      nextErrors.email = "Vui lòng nhập đúng định dạng email";
     }
 
     setErrors(nextErrors);

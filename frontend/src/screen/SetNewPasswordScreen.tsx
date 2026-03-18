@@ -154,7 +154,7 @@ export default function SetNewPasswordScreen() {
             </View>
 
             <TouchableOpacity onPress={backToLogin} disabled={loading}>
-              <Text style={styles.backText}>Quay lại đăng nhập</Text>
+              <Text style={styles.backText}>Quay về đăng nhập</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAwareScrollView>

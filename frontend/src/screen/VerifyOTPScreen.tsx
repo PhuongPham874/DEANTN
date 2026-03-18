@@ -151,7 +151,7 @@ export default function VerifyOTPScreen() {
           
 
           <TouchableOpacity onPress={backToLogin} disabled={loading}>
-            <Text style={styles.backText}>Quay lại Đăng nhập</Text>
+            <Text style={styles.backText}>Quay về Đăng nhập</Text>
           </TouchableOpacity>
         </KeyboardAwareScrollView>
       </TouchableWithoutFeedback>
