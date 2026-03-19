@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .serializers import HomeDishQuerySerializer, IndividualDishQuerySerializer, UpsertIndividualDishSerializer
-from .services import HomeService
+from .services import HomeService, IndividualService
 import json
 
 @api_view(["GET"])
@@ -88,7 +88,7 @@ def individual_dish_list_view(request):
     serializer = IndividualDishQuerySerializer(data=request.query_params)
     serializer.is_valid(raise_exception=True)
 
-    data = HomeService.get_individual_dishes(
+    data = IndividualService.get_individual_dishes(
         request=request,
         user=request.user,
         search=serializer.validated_data.get("search", ""),
@@ -131,7 +131,7 @@ def individual_dish_create_view(request):
     serializer = UpsertIndividualDishSerializer(data=payload)
     serializer.is_valid(raise_exception=True)
 
-    result = HomeService.create_individual_dish(
+    result = IndividualService.create_individual_dish(
         request=request,
         user=request.user,
         validated_data=serializer.validated_data,
@@ -151,7 +151,7 @@ def individual_dish_create_view(request):
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def individual_dish_update_view(request, dish_id):
     if request.method == "GET":
-        result = HomeService.get_individual_dish_for_update(
+        result = IndividualService.get_individual_dish_for_update(
             request=request,
             user=request.user,
             dish_id=dish_id,
@@ -179,7 +179,7 @@ def individual_dish_update_view(request, dish_id):
     serializer = UpsertIndividualDishSerializer(data=payload)
     serializer.is_valid(raise_exception=True)
 
-    result = HomeService.update_individual_dish(
+    result = IndividualService.update_individual_dish(
         request=request,
         user=request.user,
         dish_id=dish_id,
@@ -206,7 +206,7 @@ def individual_dish_update_view(request, dish_id):
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def individual_dish_delete_view(request, dish_id):
-    result = HomeService.delete_individual_dish(
+    result = IndividualService.delete_individual_dish(
         user=request.user,
         dish_id=dish_id,
     )

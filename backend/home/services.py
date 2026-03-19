@@ -84,9 +84,9 @@ class HomeService:
                 "data": None,
             }
 
-        # =========================
-        # 1) Món hệ thống
-        # =========================
+        # ==================================================
+        # 1) Bấm tim từ món hệ thống (home dùng system dish_id)
+        # ==================================================
         if dish.is_system:
             existing_relation = (
                 IndividualDish.objects
@@ -99,10 +99,13 @@ class HomeService:
                 .first()
             )
 
-            # bỏ yêu thích -> xóa relation + xóa bản copy
+            # đã có clone -> bỏ tim = xóa relation + xóa bản copy
             if existing_relation:
                 with transaction.atomic():
                     copied_dish = existing_relation.dish
+                    individual_dish_id = copied_dish.dish_id
+                    source_dish_id = dish.dish_id
+
                     existing_relation.delete()
                     copied_dish.delete()
 
@@ -110,12 +113,14 @@ class HomeService:
                     "success": True,
                     "message": "Đã bỏ món khỏi danh sách yêu thích",
                     "data": {
-                        "source_dish_id": dish.dish_id,
+                        "source_dish_id": source_dish_id,
+                        "individual_dish_id": individual_dish_id,
                         "is_favorite": False,
+                        "deleted": True,
                     },
                 }
 
-            # thêm yêu thích -> tạo bản copy
+            # chưa có clone -> tạo clone + favorite
             with transaction.atomic():
                 copied_dish = Dish.objects.create(
                     dish_name=dish.dish_name,
@@ -156,12 +161,13 @@ class HomeService:
                     "source_dish_id": dish.dish_id,
                     "individual_dish_id": copied_dish.dish_id,
                     "is_favorite": True,
+                    "deleted": False,
                 },
             }
 
-        # =========================
-        # 2) Món người dùng tự tạo
-        # =========================
+        # ==================================================
+        # 2) Món của user (is_system=False)
+        # ==================================================
         individual_relation = (
             IndividualDish.objects
             .filter(
@@ -180,23 +186,80 @@ class HomeService:
                 "data": None,
             }
 
-        individual_relation.is_favorite = not individual_relation.is_favorite
+        # --------------------------------------------------
+        # 2a) Món user tự tạo: source_dish_id = None
+        # -> chỉ toggle is_favorite
+        # --------------------------------------------------
+        if dish.source_dish_id is None:
+            individual_relation.is_favorite = not individual_relation.is_favorite
+            individual_relation.save(update_fields=["is_favorite"])
+
+            return {
+                "success": True,
+                "message": (
+                    "Đã thêm món vào danh sách yêu thích"
+                    if individual_relation.is_favorite
+                    else "Đã bỏ món khỏi danh sách yêu thích"
+                ),
+                "data": {
+                    "source_dish_id": dish.dish_id,
+                    "individual_dish_id": dish.dish_id,
+                    "is_favorite": individual_relation.is_favorite,
+                    "deleted": False,
+                },
+            }
+
+        # --------------------------------------------------
+        # 2b) Món clone từ hệ thống: source_dish_id có tồn tại
+        # -> bỏ tim thì xóa khỏi individual list + xóa bản copy
+        # --------------------------------------------------
+        if individual_relation.is_favorite:
+            with transaction.atomic():
+                individual_dish_id = dish.dish_id
+                source_dish_id = dish.source_dish_id
+
+                individual_relation.delete()
+                dish.delete()
+
+            return {
+                "success": True,
+                "message": "Đã bỏ món khỏi danh sách yêu thích",
+                "data": {
+                    "source_dish_id": source_dish_id,
+                    "individual_dish_id": individual_dish_id,
+                    "is_favorite": False,
+                    "deleted": True,
+                },
+            }
+
+        # fallback an toàn: clone tồn tại nhưng is_favorite=False thì bật lại
+        individual_relation.is_favorite = True
         individual_relation.save(update_fields=["is_favorite"])
 
         return {
             "success": True,
-            "message": (
-                "Đã thêm món vào danh sách yêu thích"
-                if individual_relation.is_favorite
-                else "Đã bỏ món khỏi danh sách yêu thích"
-            ),
+            "message": "Đã thêm món vào danh sách yêu thích",
             "data": {
+                "source_dish_id": dish.source_dish_id,
                 "individual_dish_id": dish.dish_id,
-                "source_dish_id": dish.source_dish_id if dish.source_dish_id else dish.dish_id,
-                "is_favorite": individual_relation.is_favorite,
+                "is_favorite": True,
+                "deleted": False,
             },
         }
-    
+
+
+    @staticmethod
+    def apply_dish_search(queryset, search: str):
+        keyword = (search or "").strip()
+        if not keyword:
+            return queryset
+
+        return queryset.filter(
+            Q(dish_name__icontains=keyword) |
+            Q(dish_details__ingredient__ingredient_name__icontains=keyword)
+        ).distinct()
+
+
     @staticmethod
     def normalize_ingredient_category(category: str) -> str:
         normalized = (category or "").strip().lower()
@@ -309,6 +372,9 @@ class HomeService:
             },
         }
     
+    
+
+class IndividualService:    
     @staticmethod
     def get_individual_dishes(request, user, search="", category=""):
         queryset = Dish.objects.filter(
@@ -346,17 +412,6 @@ class HomeService:
         }
     
     @staticmethod
-    def apply_dish_search(queryset, search: str):
-        keyword = (search or "").strip()
-        if not keyword:
-            return queryset
-
-        return queryset.filter(
-            Q(dish_name__icontains=keyword) |
-            Q(dish_details__ingredient__ingredient_name__icontains=keyword)
-        ).distinct()
-
-    @staticmethod
     def _get_or_create_ingredient(ingredient_data):
         ingredient_name = ingredient_data["ingredient_name"].strip()
 
@@ -376,7 +431,7 @@ class HomeService:
         dish.methods.all().delete()
 
         for ingredient_data in ingredients_data:
-            ingredient = HomeService._get_or_create_ingredient(ingredient_data)
+            ingredient = IndividualService._get_or_create_ingredient(ingredient_data)
 
             DishDetail.objects.create(
                 dish=dish,
@@ -410,7 +465,7 @@ class HomeService:
                 source_dish=None,
             )
 
-            HomeService._replace_dish_details_and_methods(
+            IndividualService._replace_dish_details_and_methods(
                 dish=dish,
                 ingredients_data=ingredients_data,
                 methods_data=methods_data,
@@ -493,7 +548,7 @@ class HomeService:
 
     @staticmethod
     def get_individual_dish_for_update(request, user, dish_id):
-        relation = HomeService._get_individual_relation(
+        relation = IndividualService._get_individual_relation(
             user=user,
             dish_id=dish_id,
             prefetch=True,
@@ -509,7 +564,7 @@ class HomeService:
         return {
             "success": True,
             "message": "Lấy dữ liệu món ăn thành công",
-            "data": HomeService._build_individual_form_data(request, relation),
+            "data": IndividualService._build_individual_form_data(request, relation),
         }
 
     @staticmethod
@@ -518,7 +573,7 @@ class HomeService:
         methods_data = validated_data.pop("methods", [])
         image = validated_data.pop("image", None)
 
-        relation = HomeService._get_individual_relation(
+        relation = IndividualService._get_individual_relation(
             user=user,
             dish_id=dish_id,
             prefetch=False,
@@ -545,7 +600,7 @@ class HomeService:
 
             dish.save()
 
-            HomeService._replace_dish_details_and_methods(
+            IndividualService._replace_dish_details_and_methods(
                 dish=dish,
                 ingredients_data=ingredients_data,
                 methods_data=methods_data,
@@ -554,7 +609,7 @@ class HomeService:
         return {
             "success": True,
             "message": "Cập nhật món ăn thành công",
-            "data": HomeService._build_individual_form_data(request, relation),
+            "data": IndividualService._build_individual_form_data(request, relation),
         }
 
 
@@ -595,3 +650,5 @@ class HomeService:
                 "deleted": True,
             },
         }
+    
+

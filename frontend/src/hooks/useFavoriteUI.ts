@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { getAuthToken, clearAuthToken } from "@/src/utils/authStorage";
@@ -71,50 +72,40 @@ export function useFavoriteUI() {
     [search, handleAuthError]
   );
 
+    useFocusEffect(
+    useCallback(() => {
+      fetchData({ keyword: search }).catch(() => {});
+    }, [fetchData, search])
+  );
+
   // Xử lý logic Yêu thích (Toggle Favorite)
-  const onToggleFavorite = useCallback(async (dishId: number) => {
-    if (togglingFavoriteId === dishId) return;
+  const onToggleFavorite = useCallback(
+    async (dishId: number) => {
+      if (togglingFavoriteId === dishId) return;
 
-    const token = await getAuthToken();
-    if (!token) {
-      router.replace("/auth/login");
-      return;
-    }
+      try {
+        setTogglingFavoriteId(dishId);
 
-    // Lưu lại trạng thái cũ để rollback nếu lỗi
-    const previousDishes = [...dishes];
+        const token = await getAuthToken();
+        if (!token) {
+          router.replace("/auth/login");
+          return;
+        }
 
-    // 1. Optimistic Update: Cập nhật UI ngay lập tức
-    setDishes((prev) =>
-      prev.map((item) =>
-        item.dish_id === dishId
-          ? { ...item, is_favorite: !item.is_favorite }
-          : item
-      )
-    );
+        await toggleFavoriteApi({ dishId, token });
 
-    try {
-      setTogglingFavoriteId(dishId);
-      const response = await toggleFavoriteApi({ dishId, token });
-      
-      // 2. Cập nhật lại trạng thái chuẩn xác từ server response
-      setDishes((prev) =>
-        prev.map((item) =>
-          item.dish_id === dishId
-            ? { ...item, is_favorite: response.data.is_favorite }
-            : item
-        )
-      );
-    } catch (err) {
-      // 3. Rollback nếu gặp lỗi
-      setDishes(previousDishes);
-      if (!(await handleAuthError(err))) {
-        Alert.alert("Lỗi", "Không thể cập nhật trạng thái yêu thích");
+        // Reload lại danh sách để đồng bộ tuyệt đối với backend
+        await fetchData();
+      } catch (err) {
+        if (!(await handleAuthError(err))) {
+          Alert.alert("Lỗi", "Không thể cập nhật trạng thái yêu thích");
+        }
+      } finally {
+        setTogglingFavoriteId(null);
       }
-    } finally {
-      setTogglingFavoriteId(null);
-    }
-  }, [dishes, togglingFavoriteId, handleAuthError, router]);
+    },
+    [togglingFavoriteId, handleAuthError, router, fetchData]
+  );
 
   // Xử lý Xóa món ăn
   const handleDeleteDish = async (dishId: number) => {

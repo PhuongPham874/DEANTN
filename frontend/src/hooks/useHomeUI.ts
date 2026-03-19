@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import { useRouter } from "expo-router";
 import {
   getHomeDishes,
@@ -26,6 +27,7 @@ function isAuthExpiredError(error: unknown) {
     message.includes("unauthorized")
   );
 }
+
 
 export function useHomeUI() {
   const router = useRouter();
@@ -99,9 +101,16 @@ export function useHomeUI() {
     [handleAuthExpired]
   );
 
+
   useEffect(() => {
     fetchData("", "all");
   }, [fetchData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData(search, selectedCategory, { silent: true }).catch(() => {});
+    }, [fetchData, search, selectedCategory])
+  );
 
   useEffect(() => {
     if (firstRenderRef.current) {
@@ -140,37 +149,29 @@ export function useHomeUI() {
     await fetchData(search, selectedCategory);
   };
 
-  const onToggleFavorite = async (dishId: number) => {
-    if (togglingFavoriteId === dishId) return;
+  const onToggleFavorite = useCallback(
+    async (dishId: number) => {
+      if (togglingFavoriteId === dishId) return;
 
-    const previousDishes = dishes;
+      setTogglingFavoriteId(dishId);
+      setError("");
 
-    setTogglingFavoriteId(dishId);
-    setError("");
+      try {
+        await toggleFavorite(dishId);
+        await fetchData(search, selectedCategory, { silent: true });
+      } catch (err) {
+        if (isAuthExpiredError(err)) {
+          await handleAuthExpired();
+          return;
+        }
 
-    setDishes((prev) =>
-      prev.map((item) =>
-        item.dish_id === dishId
-          ? { ...item, is_favorite: !item.is_favorite }
-          : item
-      )
-    );
-
-    try {
-      await toggleFavorite(dishId);
-    } catch (err) {
-      setDishes(previousDishes);
-
-      if (isAuthExpiredError(err)) {
-        await handleAuthExpired();
-        return;
+        setError(getErrorMessage(err, "Không thể cập nhật yêu thích"));
+      } finally {
+        setTogglingFavoriteId(null);
       }
-
-      setError(getErrorMessage(err, "Không thể cập nhật yêu thích"));
-    } finally {
-      setTogglingFavoriteId(null);
-    }
-  };
+    },
+    [togglingFavoriteId, fetchData, search, selectedCategory, handleAuthExpired]
+  );
 
   const onPressDish = (dishId: number) => {
   router.push({
