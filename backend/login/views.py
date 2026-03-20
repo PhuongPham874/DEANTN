@@ -1,27 +1,168 @@
-from django.http import JsonResponse
-from django.contrib.auth import authenticate
-from django.views.decorators.csrf import csrf_exempt
-import json
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
 
-@csrf_exempt
-def login(request):
-    if request.method != "POST":
-        return JsonResponse({"message": "Method not allowed"}, status=405)
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
 
-    body = json.loads(request.body)
-    username = body.get("username")
-    password = body.get("password")
+from .serializers import RegisterSerializer
+from .services import register_user, FieldError
 
-    user = authenticate(username=username, password=password)
+from .serializers import LoginSerializer
+from .services import AuthService
 
-    if user is not None:
-        return JsonResponse({
-            "authenticated": True,
-            "username": user.username,
-            "user_id": user.id
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def register(request):
+    """
+    POST /api/auth/register/
+    Response:
+      - 201: { "message": "Đăng ký tài khoản thành công" }
+      - 400: { "errors": { "field": ["message"] } }
+    """
+    serializer = RegisterSerializer(data=request.data)
+    if not serializer.is_valid():
+        # Trả lỗi chuẩn UI: show dưới từng input
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    data = serializer.validated_data
+
+    try:
+        register_user(
+            username=data["username"],
+            email=data["email"],
+            password=data["password"],
+        )
+    except FieldError as e:
+        return Response(
+            {"errors": {e.field: [e.message]}},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return Response(
+        {"message": "Đăng ký tài khoản thành công"},
+        status=status.HTTP_201_CREATED,
+    )
+
+
+def success(message: str, data=None, status_code=status.HTTP_200_OK):
+    payload = {"message": message}
+    if data is not None:
+        payload["data"] = data
+    return Response(payload, status=status_code)
+
+
+def error(errors: dict, status_code=status.HTTP_400_BAD_REQUEST):
+    return Response({"errors": errors}, status=status_code)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def login_view(request):
+    serializer = LoginSerializer(data=request.data)
+
+    # Validation nằm trong serializer
+    if not serializer.is_valid():
+        return error(serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+    # Business logic nằm trong service: tạo/get token
+    user = serializer.validated_data["user"]
+    result = AuthService.login(user=user)
+
+    return success(
+        "Đăng nhập thành công",
+        data={
+            "token": result.token,
+            "user": {
+                "id": result.user_id,
+                "username": result.username,
+            },
+        },
+        status_code=status.HTTP_200_OK,
+    )
+
+
+#Forgot Password
+
+from .serializers import (
+    SendOTPSerializer,
+    VerifyOTPSerializer,
+    ResetPasswordSerializer,
+)
+from .services import FieldError, ForgotPasswordService
+
+
+def error_response(errors, status_code=status.HTTP_400_BAD_REQUEST):
+    return Response(
+        {"errors": errors},
+        status=status_code
+    )
+
+
+@api_view(["POST"])
+def send_otp_view(request):
+    serializer = SendOTPSerializer(data=request.data)
+    if not serializer.is_valid():
+        return error_response(serializer.errors)
+
+    try:
+        ForgotPasswordService.send_otp(
+            email=serializer.validated_data["email"]
+        )
+    except FieldError as exc:
+        return error_response({
+            exc.field: [exc.message]
         })
-    else:
-        return JsonResponse({
-            "authenticated": False,
-            "message": "Sai username hoặc password"
-        }, status=401)
+
+    return Response(
+        {"message": "Mã OTP đã được gửi về email"},
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(["POST"])
+def verify_otp_view(request):
+    serializer = VerifyOTPSerializer(data=request.data)
+    if not serializer.is_valid():
+        return error_response(serializer.errors)
+
+    try:
+        reset_token = ForgotPasswordService.verify_otp(
+            email=serializer.validated_data["email"],
+            otp=serializer.validated_data["otp"],
+        )
+    except FieldError as exc:
+        return error_response({
+            exc.field: [exc.message]
+        })
+
+    return Response(
+        {
+            "message": "Xác thực OTP thành công",
+            "reset_token": reset_token,
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(["POST"])
+def reset_password_view(request):
+    serializer = ResetPasswordSerializer(data=request.data)
+    if not serializer.is_valid():
+        return error_response(serializer.errors)
+
+    try:
+        ForgotPasswordService.reset_password(
+            email=serializer.validated_data["email"],
+            reset_token=str(serializer.validated_data["reset_token"]),
+            new_password=serializer.validated_data["new_password"],
+        )
+    except FieldError as exc:
+        return error_response({
+            exc.field: [exc.message]
+        })
+
+    return Response(
+        {"message": "Đặt lại mật khẩu thành công"},
+        status=status.HTTP_200_OK
+    )
