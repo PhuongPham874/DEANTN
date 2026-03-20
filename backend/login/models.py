@@ -44,3 +44,5 @@ class PasswordResetSession(models.Model):
 
     def __str__(self):
         return f"PasswordResetSession(user_id={self.user_id}, is_used={self.is_used})"
+
+    

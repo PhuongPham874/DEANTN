@@ -116,7 +116,7 @@ def register_user(*, username: str, email: str, password: str):
         raise FieldError(field="username", message="Tài khoản người dùng đã tồn tại")
 
     if User.objects.filter(email__iexact=email).exists():
-        raise FieldError(field="email", message="Email đã tồn tại")
+        raise FieldError(field="email", message="Email đã tồn tại trong hệ thống")
 
     try:
         with transaction.atomic():

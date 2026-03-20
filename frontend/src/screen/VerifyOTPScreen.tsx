@@ -25,7 +25,7 @@ export default function VerifyOTPScreen() {
     errors,
     verifyOtp,
     resendOtp,
-    backToForgotPassword,
+    backToLogin,
     formattedCountdown,
     canResend,
   } = useForgotPasswordFlow();
@@ -150,8 +150,8 @@ export default function VerifyOTPScreen() {
 
           
 
-          <TouchableOpacity onPress={backToForgotPassword} disabled={loading}>
-            <Text style={styles.backText}>Quay lại</Text>
+          <TouchableOpacity onPress={backToLogin} disabled={loading}>
+            <Text style={styles.backText}>Quay về Đăng nhập</Text>
           </TouchableOpacity>
         </KeyboardAwareScrollView>
       </TouchableWithoutFeedback>

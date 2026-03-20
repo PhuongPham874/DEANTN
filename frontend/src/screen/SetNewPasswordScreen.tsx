@@ -29,7 +29,7 @@ export default function SetNewPasswordScreen() {
     resetPassword,
     loading,
     errors,
-    backToVerifyOtp,
+    backToLogin,
   } = useForgotPasswordFlow();
 
   return (
@@ -153,8 +153,8 @@ export default function SetNewPasswordScreen() {
                 />
             </View>
 
-            <TouchableOpacity onPress={backToVerifyOtp} disabled={loading}>
-              <Text style={styles.backText}>Quay lại</Text>
+            <TouchableOpacity onPress={backToLogin} disabled={loading}>
+              <Text style={styles.backText}>Quay về đăng nhập</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAwareScrollView>

@@ -8,8 +8,10 @@ from rest_framework import status
 from .serializers import RegisterSerializer
 from .services import register_user, FieldError
 
-from .serializers import LoginSerializer
-from .services import AuthService
+from .serializers import LoginSerializer, SendOTPSerializer, VerifyOTPSerializer, ResetPasswordSerializer
+from .services import AuthService, FieldError, ForgotPasswordService
+
+
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -61,11 +63,9 @@ def error(errors: dict, status_code=status.HTTP_400_BAD_REQUEST):
 def login_view(request):
     serializer = LoginSerializer(data=request.data)
 
-    # Validation nằm trong serializer
     if not serializer.is_valid():
         return error(serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
-    # Business logic nằm trong service: tạo/get token
     user = serializer.validated_data["user"]
     result = AuthService.login(user=user)
 
@@ -81,24 +81,13 @@ def login_view(request):
         status_code=status.HTTP_200_OK,
     )
 
-
-#Forgot Password
-
-from .serializers import (
-    SendOTPSerializer,
-    VerifyOTPSerializer,
-    ResetPasswordSerializer,
-)
-from .services import FieldError, ForgotPasswordService
-
-
 def error_response(errors, status_code=status.HTTP_400_BAD_REQUEST):
     return Response(
         {"errors": errors},
         status=status_code
     )
 
-
+#Forgot Password
 @api_view(["POST"])
 def send_otp_view(request):
     serializer = SendOTPSerializer(data=request.data)
