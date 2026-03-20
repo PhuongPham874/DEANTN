@@ -1,15 +1,15 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
 from rest_framework import status
 
 from .serializers import RegisterSerializer
 from .services import register_user, FieldError
 
-from .serializers import LoginSerializer, SendOTPSerializer, VerifyOTPSerializer, ResetPasswordSerializer
-from .services import AuthService, FieldError, ForgotPasswordService
+from .serializers import LoginSerializer, SendOTPSerializer, VerifyOTPSerializer, ResetPasswordSerializer, ChangePasswordSerializer
+from .services import AuthService, FieldError, ForgotPasswordService, UserService
 
 
 
@@ -154,4 +154,50 @@ def reset_password_view(request):
     return Response(
         {"message": "Đặt lại mật khẩu thành công"},
         status=status.HTTP_200_OK
+    )
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_password_view(request):
+    # View sử dụng chuẩn success/error bạn đã định nghĩa ở các file trước
+    serializer = ChangePasswordSerializer(data=request.data)
+    
+    if not serializer.is_valid():
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        UserService.change_password(
+            user=request.user,
+            old_password=serializer.validated_data["old_password"],
+            new_password=serializer.validated_data["new_password"]
+        )
+    except FieldError as e:
+        return Response(
+            {"errors": {e.field: [e.message]}}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    return Response(
+        {"message": "Mật khẩu đã được cập nhật thành công"}, 
+        status=status.HTTP_200_OK
+    )
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated]) # Precondition: Phải có token hợp lệ để gọi
+def logout_view(request):
+    """
+    POST /api/auth/logout/
+    """
+    # Gọi service để xử lý xóa token
+    success = AuthService.logout(user=request.user)
+    
+    if success:
+        return Response(
+            {"message": "Đăng xuất thành công"}, 
+            status=status.HTTP_200_OK
+        )
+    
+    return Response(
+        {"errors": {"non_field_errors": ["Không thể thực hiện đăng xuất lúc này"]}}, 
+        status=status.HTTP_400_BAD_REQUEST
     )

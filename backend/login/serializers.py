@@ -151,3 +151,17 @@ class ResetPasswordSerializer(serializers.Serializer):
             })
 
         return attrs
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    UC 1.5 - Đổi mật khẩu (Backend tinh gọn)
+    Chỉ nhận password cũ và mới. Xác nhận khớp password sẽ làm ở Hook.
+    """
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+
+    def validate_new_password(self, value):
+        # Vẫn giữ một bước check độ dài tối thiểu để đảm bảo an toàn hệ thống (layer 2)
+        if len(value) < 8:
+            raise serializers.ValidationError("Mật khẩu phải có ít nhất 8 ký tự.")
+        return value

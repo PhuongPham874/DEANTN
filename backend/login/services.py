@@ -66,7 +66,17 @@ class AuthService:
             user_id=user.id,
             username=user.get_username(),
         )
-    
+    @staticmethod
+    def logout(*, user):
+        """
+        Business Logic: Xóa token hiện tại của user để đăng xuất.
+        """
+        try:
+            # Xóa token của user trong database
+            Token.objects.filter(user=user).delete()
+            return True
+        except Exception:
+            return False
 
 
 from .models import EmailOTP, PasswordResetSession
@@ -241,3 +251,28 @@ class ForgotPasswordService:
 
         reset_session.is_used = True
         reset_session.save(update_fields=["is_used"])
+
+
+class UserService:
+    @staticmethod
+    @transaction.atomic
+    def change_password(*, user, old_password: str, new_password: str):
+        # 1. Kiểm tra mật khẩu cũ (So sánh với hash trong DB)
+        if not user.check_password(old_password):
+            raise FieldError(
+                field="old_password", 
+                message="Mật khẩu cũ không chính xác"
+            )
+
+        # 2. Kiểm tra nghiệp vụ: Mật khẩu mới không được giống mật khẩu cũ
+        if old_password == new_password:
+            raise FieldError(
+                field="new_password", 
+                message="Mật khẩu mới phải khác mật khẩu hiện tại"
+            )
+
+        # 3. Apply thay đổi vào Database
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+        
+        return user

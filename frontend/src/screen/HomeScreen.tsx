@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,10 +9,19 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DishCard from "@/components/home/DishCard";
 import { useHomeUI } from "@/src/hooks/useHomeUI";
+import Profile_icon from "@/assets/profile.svg";
+import { useProfileDropdown } from "@/src/hooks/useProfileDropdown";
+import ProfileDropdown from "@/components/home/ProfileDropdown";
+import ChangePasswordModal from "@/components/home/ChangePasswordModal";
+import { useChangePasswordUI } from "@/src/hooks/useChangePasswordUI";
+import { router } from "expo-router";
+import { logoutApi } from "@/src/api/logoutApi";
+import { clearAuthToken } from "@/src/utils/authStorage";
 
 export default function HomeScreen() {
   const {
@@ -28,6 +37,37 @@ export default function HomeScreen() {
     onToggleFavorite,
     onPressDish,
   } = useHomeUI();
+
+  const {
+    profileButtonRef,
+    dropdownVisible,
+    dropdownPosition,
+    openDropdown,
+    closeDropdown,
+  } = useProfileDropdown();
+
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+
+  const changePasswordUI = useChangePasswordUI({
+    onClose: () => setChangePasswordVisible(false),
+  });
+
+  const onPressChangePassword = () => {
+    closeDropdown();
+    setChangePasswordVisible(true);
+  };
+
+  const onPressLogout = async () => {
+    closeDropdown();
+
+    try {
+      await logoutApi();
+    } catch {
+      // nếu logout server lỗi vẫn xóa token local để buộc user đăng nhập lại
+    }
+    await clearAuthToken();
+    router.replace("/");
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -48,7 +88,15 @@ export default function HomeScreen() {
 
               <View style={styles.headerRight}>
                 <Ionicons name="sparkles-outline" size={28} color="#669C2F" />
-                <View style={styles.avatar} />
+                <TouchableOpacity
+                  ref={profileButtonRef}
+                  activeOpacity={0.8}
+                  onPress={openDropdown}
+                  style={styles.profileButton}
+                >
+                  <Profile_icon width={28} height={28} />
+                </TouchableOpacity>
+
               </View>
             </View>
 
@@ -100,13 +148,37 @@ export default function HomeScreen() {
             />
           </View>
         )}
-        ListEmptyComponent={
-          !loading ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>Không có món ăn phù hợp</Text>
-            </View>
-          ) : null
-        }
+      />
+
+      <ProfileDropdown
+        visible={dropdownVisible}
+        onClose={closeDropdown}
+        top={dropdownPosition.top}
+        left={dropdownPosition.left}
+        username={username}
+        onPressChangePassword={onPressChangePassword}
+        onPressLogout={onPressLogout}
+      />
+
+      <ChangePasswordModal
+        visible={changePasswordVisible}
+        oldPassword={changePasswordUI.oldPassword}
+        newPassword={changePasswordUI.newPassword}
+        confirmPassword={changePasswordUI.confirmPassword}
+        showOldPassword={changePasswordUI.showOldPassword}
+        showNewPassword={changePasswordUI.showNewPassword}
+        showConfirmPassword={changePasswordUI.showConfirmPassword}
+        errors={changePasswordUI.errors}
+        submitting={changePasswordUI.submitting}
+        disableSubmit={changePasswordUI.disableSubmit}
+        setOldPassword={changePasswordUI.setOldPassword}
+        setNewPassword={changePasswordUI.setNewPassword}
+        setConfirmPassword={changePasswordUI.setConfirmPassword}
+        setShowOldPassword={changePasswordUI.setShowOldPassword}
+        setShowNewPassword={changePasswordUI.setShowNewPassword}
+        setShowConfirmPassword={changePasswordUI.setShowConfirmPassword}
+        onSubmit={changePasswordUI.onSubmit}
+        onCancel={changePasswordUI.onCancel}
       />
 
       {loading && (
@@ -147,13 +219,13 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 16
   },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#D9D9D9",
-    marginLeft: 12,
+  profileButton: {
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchBox: {
     height: 52,
@@ -203,14 +275,6 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     width: "48%",
-  },
-  emptyBox: {
-    alignItems: "center",
-    paddingTop: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#6B7280",
   },
   errorText: {
     marginBottom: 12,
