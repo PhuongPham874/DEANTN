@@ -10,7 +10,7 @@ export default function TabsLayout() {
       {/* Chỉ để lại các Tab chính xuất hiện trên thanh điều hướng */}
       <Tabs.Screen name="home" options={{ title: "Trang chủ" }} />
       <Tabs.Screen name="favourite" options={{ title: "Món ăn" }}/>
-      <Tabs.Screen name="menu" />
+      <Tabs.Screen name="mealplan" options={{ title: "Thực đơn" }} />
       <Tabs.Screen name="shopping" />
       <Tabs.Screen name="ingredient" />
     </Tabs>

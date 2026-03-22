@@ -1,0 +1,717 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Platform, ToastAndroid } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import {
+  ApiFormError,
+  assignMealPlanDishApi,
+  clearMealPlanDayApi,
+  clearMealPlanWeekApi,
+  copyMealPlanDayApi,
+  copyMealPlanWeekApi,
+  deleteMealPlanDetailApi,
+  getCopyDayOptionsApi,
+  getCopyWeekOptionsApi,
+  getMealPlanDishesApi,
+  getMealPlanWeekApi,
+  type AssignedDishItem,
+  type CopyDayOptionItem,
+  type CopyWeekOptionItem,
+  type MealPlanAvailableDish,
+  type MealPlanDay,
+  type MealPlanMeal,
+  type MealPlanWeekData,
+  type MealType,
+} from "@/src/api/mealPlanApi";
+
+type PickerContext = {
+  date: string;
+  meal_type: MealType;
+  label: string;
+} | null;
+
+type CopyWeekState = {
+  visible: boolean;
+  loading: boolean;
+  sourceStartDate: string | null;
+  sourceEndDate: string | null;
+  monthDate: string | null;
+  monthRangeLabel: string;
+  weeks: CopyWeekOptionItem[];
+  selectedTargetStartDate: string | null;
+  generalError: string;
+  fieldErrors: Record<string, string>;
+};
+
+type CopyDayState = {
+  visible: boolean;
+  loading: boolean;
+  sourceDate: string | null;
+  sourceWeekLabel: string;
+  weekDate: string | null;
+  weekLabel: string;
+  days: CopyDayOptionItem[];
+  selectedTargetDate: string | null;
+  generalError: string;
+  fieldErrors: Record<string, string>;
+};
+
+const DEFAULT_COPY_WEEK_STATE: CopyWeekState = {
+  visible: false,
+  loading: false,
+  sourceStartDate: null,
+  sourceEndDate: null,
+  monthDate: null,
+  monthRangeLabel: "",
+  weeks: [],
+  selectedTargetStartDate: null,
+  generalError: "",
+  fieldErrors: {},
+};
+
+const DEFAULT_COPY_DAY_STATE: CopyDayState = {
+  visible: false,
+  loading: false,
+  sourceDate: null,
+  sourceWeekLabel: "",
+  weekDate: null,
+  weekLabel: "",
+  days: [],
+  selectedTargetDate: null,
+  generalError: "",
+  fieldErrors: {},
+};
+
+function showMessage(message: string) {
+  if (Platform.OS === "android") {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+    return;
+  }
+
+  Alert.alert("Thông báo", message);
+}
+
+function formatDateLabel(dateString?: string | null) {
+  if (!dateString) return "";
+
+  const [year, month, day] = dateString.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function formatWeekLabel(startDate?: string | null, endDate?: string | null) {
+  if (!startDate || !endDate) return "";
+  return `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`;
+}
+
+function formatWeekTitle(startDate?: string | null, endDate?: string | null) {
+  if (!startDate || !endDate) return "";
+  return `TUẦN ${formatWeekLabel(startDate, endDate)}`;
+}
+
+function mapCopyWeekFieldErrors(fieldErrors: Record<string, string>) {
+  const mapped: Record<string, string> = {};
+
+  if (fieldErrors.source_start_date) {
+    mapped.source_start_date = fieldErrors.source_start_date;
+  }
+
+  if (fieldErrors.target_start_date) {
+    mapped.target_start_date = fieldErrors.target_start_date;
+  }
+
+  if (fieldErrors.non_field_errors) {
+    mapped.target_start_date = fieldErrors.non_field_errors;
+  }
+
+  return mapped;
+}
+
+function mapCopyDayFieldErrors(fieldErrors: Record<string, string>) {
+  const mapped: Record<string, string> = {};
+
+  if (fieldErrors.source_date) {
+    mapped.source_date = fieldErrors.source_date;
+  }
+
+  if (fieldErrors.target_date) {
+    mapped.target_date = fieldErrors.target_date;
+  }
+
+  if (fieldErrors.non_field_errors) {
+    mapped.target_date = fieldErrors.non_field_errors;
+  }
+
+  return mapped;
+}
+
+export function useMealPlanUI() {
+  const router = useRouter();
+
+  const [weekData, setWeekData] = useState<MealPlanWeekData | null>(null);
+  const [screenLoading, setScreenLoading] = useState(true);
+  const [screenRefreshing, setScreenRefreshing] = useState(false);
+  const [screenError, setScreenError] = useState("");
+
+  const [dishPickerVisible, setDishPickerVisible] = useState(false);
+  const [dishPickerLoading, setDishPickerLoading] = useState(false);
+  const [dishPickerError, setDishPickerError] = useState("");
+  const [dishSearch, setDishSearch] = useState("");
+  const [dishSearchError, setDishSearchError] = useState("");
+  const [availableDishes, setAvailableDishes] = useState<MealPlanAvailableDish[]>([]);
+  const [pickerContext, setPickerContext] = useState<PickerContext>(null);
+  const [assigningDishId, setAssigningDishId] = useState<number | null>(null);
+
+  const [copyWeekState, setCopyWeekState] = useState<CopyWeekState>(DEFAULT_COPY_WEEK_STATE);
+  const [copyDayState, setCopyDayState] = useState<CopyDayState>(DEFAULT_COPY_DAY_STATE);
+
+  const weekTitle = useMemo(() => {
+    if (!weekData) return "";
+    return formatWeekLabel(weekData.start_date, weekData.end_date);
+  }, [weekData]);
+
+  const loadWeek = useCallback(
+    async (date?: string, isRefreshing = false) => {
+      try {
+        if (isRefreshing) {
+          setScreenRefreshing(true);
+        } else {
+          setScreenLoading(true);
+        }
+
+        setScreenError("");
+
+        const response = await getMealPlanWeekApi(date);
+        setWeekData(response.data);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Không thể tải thực đơn tuần";
+        setScreenError(message);
+      } finally {
+        setScreenLoading(false);
+        setScreenRefreshing(false);
+      }
+    },
+    []
+  );
+
+  const loadAvailableDishes = useCallback(async (searchText?: string) => {
+    try {
+      setDishPickerLoading(true);
+      setDishPickerError("");
+      setDishSearchError("");
+
+      const response = await getMealPlanDishesApi(searchText);
+      setAvailableDishes(response.data.dishes);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Không thể tải danh sách món ăn";
+      setDishPickerError(message);
+    } finally {
+      setDishPickerLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadWeek();
+  }, [loadWeek]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!weekData?.start_date) return;
+      loadWeek(weekData.start_date);
+    }, [loadWeek, weekData?.start_date])
+  );
+
+  const openDishPicker = useCallback(
+    async (day: MealPlanDay, meal: MealPlanMeal) => {
+      setPickerContext({
+        date: day.date,
+        meal_type: meal.meal_type,
+        label: `${meal.label} - ${day.weekday_label}`,
+      });
+      setDishSearch("");
+      setDishPickerVisible(true);
+      await loadAvailableDishes("");
+    },
+    [loadAvailableDishes]
+  );
+
+  const closeDishPicker = useCallback(() => {
+    setDishPickerVisible(false);
+    setDishPickerError("");
+    setDishSearch("");
+    setDishSearchError("");
+    setAvailableDishes([]);
+    setPickerContext(null);
+    setAssigningDishId(null);
+  }, []);
+
+  const submitDishSearch = useCallback(async () => {
+    await loadAvailableDishes(dishSearch);
+  }, [dishSearch, loadAvailableDishes]);
+
+  const assignDish = useCallback(
+    async (dish: MealPlanAvailableDish) => {
+      if (!pickerContext) return;
+
+      try {
+        setAssigningDishId(dish.dish_id);
+        setDishPickerError("");
+
+        await assignMealPlanDishApi({
+          dish_id: dish.dish_id,
+          date: pickerContext.date,
+          meal_type: pickerContext.meal_type,
+        });
+
+        await loadWeek(weekData?.start_date || pickerContext.date);
+        closeDishPicker();
+        showMessage("Thêm món vào thực đơn thành công");
+      } catch (error) {
+        if (error instanceof ApiFormError) {
+          setDishPickerError(error.message);
+        } else {
+          setDishPickerError(
+            error instanceof Error ? error.message : "Không thể thêm món vào thực đơn"
+          );
+        }
+      } finally {
+        setAssigningDishId(null);
+      }
+    },
+    [pickerContext, loadWeek, weekData?.start_date, closeDishPicker]
+  );
+
+  const deleteAssignedDish = useCallback(
+    async (planDetailId: number) => {
+      try {
+        await deleteMealPlanDetailApi({ plan_detail_id: planDetailId });
+        await loadWeek(weekData?.start_date);
+        showMessage("Xóa món khỏi thực đơn thành công");
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Không thể xóa món khỏi thực đơn";
+        showMessage(message);
+      }
+    },
+    [loadWeek, weekData?.start_date]
+  );
+
+  const confirmDeleteAssignedDish = useCallback(
+    (planDetailId: number) => {
+      Alert.alert("Xóa món ăn", "Bạn có chắc muốn xóa món này khỏi thực đơn?", [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: () => deleteAssignedDish(planDetailId),
+        },
+      ]);
+    },
+    [deleteAssignedDish]
+  );
+
+  const clearCurrentWeek = useCallback(() => {
+    if (!weekData?.start_date) return;
+
+    Alert.alert(
+      "Xóa thực đơn tuần",
+      "Bạn có chắc muốn xóa toàn bộ món ăn trong tuần này?",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await clearMealPlanWeekApi({ start_date: weekData.start_date });
+              await loadWeek(weekData.start_date);
+              showMessage("Xóa thực đơn tuần thành công");
+            } catch (error) {
+              const message =
+                error instanceof Error ? error.message : "Không thể xóa thực đơn tuần";
+              showMessage(message);
+            }
+          },
+        },
+      ]
+    );
+  }, [loadWeek, weekData?.start_date]);
+
+  const clearDayPlan = useCallback(
+    async (date: string) => {
+      try {
+        await clearMealPlanDayApi({ date });
+        await loadWeek(weekData?.start_date || date);
+        showMessage("Xóa thực đơn ngày thành công");
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Không thể xóa thực đơn ngày";
+        showMessage(message);
+      }
+    },
+    [loadWeek, weekData?.start_date]
+  );
+
+  const confirmClearDayPlan = useCallback(
+    (date: string) => {
+      Alert.alert(
+        "Xóa thực đơn ngày",
+        "Bạn có chắc muốn xóa toàn bộ món ăn trong ngày này?",
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Xóa",
+            style: "destructive",
+            onPress: () => clearDayPlan(date),
+          },
+        ]
+      );
+    },
+    [clearDayPlan]
+  );
+
+  const goToPreviousWeek = useCallback(() => {
+    if (!weekData?.previous_week_date) return;
+    loadWeek(weekData.previous_week_date);
+  }, [loadWeek, weekData?.previous_week_date]);
+
+  const goToNextWeek = useCallback(() => {
+    if (!weekData?.next_week_date) return;
+    loadWeek(weekData.next_week_date);
+  }, [loadWeek, weekData?.next_week_date]);
+
+  const onRefresh = useCallback(() => {
+    loadWeek(weekData?.start_date, true);
+  }, [loadWeek, weekData?.start_date]);
+
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedDishId, setSelectedDishId] = useState<number | null>(null);
+  const onPressDishDetail = useCallback((dishId: number) => {
+    setSelectedDishId(dishId);
+    setDetailModalVisible(true);
+    }, []);
+
+  const closeDishDetailModal = useCallback(async () => {
+    setDetailModalVisible(false);
+    setSelectedDishId(null);
+    await loadWeek(weekData?.start_date);
+    }, [loadWeek, weekData?.start_date]);
+    
+  const openCopyWeekModal = useCallback(async () => {
+    if (!weekData?.start_date) return;
+
+    try {
+      setCopyWeekState({
+        ...DEFAULT_COPY_WEEK_STATE,
+        visible: true,
+        loading: true,
+        sourceStartDate: weekData.start_date,
+        sourceEndDate: weekData.end_date,
+        monthDate: weekData.start_date,
+      });
+
+      const response = await getCopyWeekOptionsApi({
+        source_start_date: weekData.start_date,
+        month_date: weekData.start_date,
+      });
+
+      setCopyWeekState((prev) => ({
+        ...prev,
+        visible: true,
+        loading: false,
+        sourceStartDate: response.data.source_week.start_date,
+        sourceEndDate: response.data.source_week.end_date,
+        monthDate: weekData.start_date,
+        monthRangeLabel: formatWeekLabel(
+          response.data.month_range.start_date,
+          response.data.month_range.end_date
+        ),
+        weeks: response.data.weeks,
+      }));
+    } catch (error) {
+      setCopyWeekState((prev) => ({
+        ...prev,
+        visible: true,
+        loading: false,
+        generalError:
+          error instanceof Error ? error.message : "Không thể tải danh sách tuần đích",
+      }));
+    }
+  }, [weekData?.start_date, weekData?.end_date]);
+
+  const closeCopyWeekModal = useCallback(() => {
+    setCopyWeekState(DEFAULT_COPY_WEEK_STATE);
+  }, []);
+
+  const loadCopyWeekOptions = useCallback(async (monthDate: string) => {
+    if (!copyWeekState.sourceStartDate) return;
+
+    try {
+      setCopyWeekState((prev) => ({
+        ...prev,
+        loading: true,
+        generalError: "",
+      }));
+
+      const response = await getCopyWeekOptionsApi({
+        source_start_date: copyWeekState.sourceStartDate,
+        month_date: monthDate,
+      });
+
+      setCopyWeekState((prev) => ({
+        ...prev,
+        loading: false,
+        monthDate,
+        monthRangeLabel: formatWeekLabel(
+          response.data.month_range.start_date,
+          response.data.month_range.end_date
+        ),
+        weeks: response.data.weeks,
+      }));
+    } catch (error) {
+      setCopyWeekState((prev) => ({
+        ...prev,
+        loading: false,
+        generalError:
+          error instanceof Error ? error.message : "Không thể tải danh sách tuần đích",
+      }));
+    }
+  }, [copyWeekState.sourceStartDate]);
+
+  const submitCopyWeek = useCallback(async () => {
+    if (!copyWeekState.sourceStartDate) return;
+
+    if (!copyWeekState.selectedTargetStartDate) {
+      setCopyWeekState((prev) => ({
+        ...prev,
+        fieldErrors: {
+          target_start_date: "Vui lòng chọn tuần đích",
+        },
+      }));
+      return;
+    }
+
+    try {
+      setCopyWeekState((prev) => ({
+        ...prev,
+        loading: true,
+        generalError: "",
+        fieldErrors: {},
+      }));
+
+      await copyMealPlanWeekApi({
+        source_start_date: copyWeekState.sourceStartDate,
+        target_start_date: copyWeekState.selectedTargetStartDate,
+      });
+
+      closeCopyWeekModal();
+      await loadWeek(copyWeekState.selectedTargetStartDate);
+      showMessage("Sao chép thực đơn tuần thành công");
+    } catch (error) {
+      if (error instanceof ApiFormError) {
+        setCopyWeekState((prev) => ({
+          ...prev,
+          loading: false,
+          generalError: error.message,
+          fieldErrors: mapCopyWeekFieldErrors(error.fieldErrors),
+        }));
+        return;
+      }
+
+      setCopyWeekState((prev) => ({
+        ...prev,
+        loading: false,
+        generalError:
+          error instanceof Error ? error.message : "Không thể sao chép thực đơn tuần",
+      }));
+    }
+  }, [
+    copyWeekState.selectedTargetStartDate,
+    copyWeekState.sourceStartDate,
+    closeCopyWeekModal,
+    loadWeek,
+  ]);
+
+  const openCopyDayModal = useCallback(async (sourceDate: string) => {
+    try {
+      setCopyDayState({
+        ...DEFAULT_COPY_DAY_STATE,
+        visible: true,
+        loading: true,
+        sourceDate,
+        weekDate: sourceDate,
+      });
+
+      const response = await getCopyDayOptionsApi({
+        source_date: sourceDate,
+        week_date: sourceDate,
+      });
+
+      setCopyDayState((prev) => ({
+        ...prev,
+        visible: true,
+        loading: false,
+        sourceDate: response.data.source_date,
+        sourceWeekLabel: formatWeekLabel(
+          response.data.source_week_start,
+          response.data.source_week_end
+        ),
+        weekDate: response.data.week_start_date,
+        weekLabel: formatWeekLabel(
+          response.data.week_start_date,
+          response.data.week_end_date
+        ),
+        days: response.data.days,
+      }));
+    } catch (error) {
+      setCopyDayState((prev) => ({
+        ...prev,
+        visible: true,
+        loading: false,
+        generalError:
+          error instanceof Error ? error.message : "Không thể tải danh sách ngày đích",
+      }));
+    }
+  }, []);
+
+  const closeCopyDayModal = useCallback(() => {
+    setCopyDayState(DEFAULT_COPY_DAY_STATE);
+  }, []);
+
+  const loadCopyDayOptions = useCallback(async (weekDate: string) => {
+    if (!copyDayState.sourceDate) return;
+
+    try {
+      setCopyDayState((prev) => ({
+        ...prev,
+        loading: true,
+        generalError: "",
+      }));
+
+      const response = await getCopyDayOptionsApi({
+        source_date: copyDayState.sourceDate,
+        week_date: weekDate,
+      });
+
+      setCopyDayState((prev) => ({
+        ...prev,
+        loading: false,
+        weekDate,
+        weekLabel: formatWeekLabel(
+          response.data.week_start_date,
+          response.data.week_end_date
+        ),
+        days: response.data.days,
+      }));
+    } catch (error) {
+      setCopyDayState((prev) => ({
+        ...prev,
+        loading: false,
+        generalError:
+          error instanceof Error ? error.message : "Không thể tải danh sách ngày đích",
+      }));
+    }
+  }, [copyDayState.sourceDate]);
+
+  const submitCopyDay = useCallback(async () => {
+    if (!copyDayState.sourceDate) return;
+
+    if (!copyDayState.selectedTargetDate) {
+      setCopyDayState((prev) => ({
+        ...prev,
+        fieldErrors: {
+          target_date: "Vui lòng chọn ngày đích",
+        },
+      }));
+      return;
+    }
+
+    try {
+      setCopyDayState((prev) => ({
+        ...prev,
+        loading: true,
+        generalError: "",
+        fieldErrors: {},
+      }));
+
+      await copyMealPlanDayApi({
+        source_date: copyDayState.sourceDate,
+        target_date: copyDayState.selectedTargetDate,
+      });
+
+      closeCopyDayModal();
+      await loadWeek(copyDayState.selectedTargetDate);
+      showMessage("Sao chép thực đơn ngày thành công");
+    } catch (error) {
+      if (error instanceof ApiFormError) {
+        setCopyDayState((prev) => ({
+          ...prev,
+          loading: false,
+          generalError: error.message,
+          fieldErrors: mapCopyDayFieldErrors(error.fieldErrors),
+        }));
+        return;
+      }
+
+      setCopyDayState((prev) => ({
+        ...prev,
+        loading: false,
+        generalError:
+          error instanceof Error ? error.message : "Không thể sao chép thực đơn ngày",
+      }));
+    }
+  }, [
+    copyDayState.selectedTargetDate,
+    copyDayState.sourceDate,
+    closeCopyDayModal,
+    loadWeek,
+  ]);
+
+    return {
+    screenLoading,
+    screenRefreshing,
+    screenError,
+    weekData,
+    weekTitle,
+
+    onRefresh,
+    goToPreviousWeek,
+    goToNextWeek,
+    clearCurrentWeek,
+    confirmClearDayPlan,
+    onPressDishDetail,
+    confirmDeleteAssignedDish,
+
+    dishPickerVisible,
+    dishPickerLoading,
+    dishPickerError,
+    dishSearch,
+    dishSearchError,
+    availableDishes,
+    pickerContext,
+    assigningDishId,
+    setDishSearch,
+    submitDishSearch,
+    openDishPicker,
+    closeDishPicker,
+    assignDish,
+
+    copyWeekState,
+    openCopyWeekModal,
+    closeCopyWeekModal,
+    loadCopyWeekOptions,
+    setCopyWeekState,
+    submitCopyWeek,
+
+    copyDayState,
+    openCopyDayModal,
+    closeCopyDayModal,
+    loadCopyDayOptions,
+    setCopyDayState,
+    submitCopyDay,
+
+    detailModalVisible,
+    selectedDishId,
+    closeDishDetailModal,
+  };
+}

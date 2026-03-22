@@ -29,7 +29,7 @@ function getTabMeta(routeName: string, focused: boolean) {
         ),
       };
 
-    case "menu":
+    case "mealplan/index":
       return {
         label: "Thực đơn",
         icon: (

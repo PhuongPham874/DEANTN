@@ -140,8 +140,7 @@ export default function IndividualDishFormScreen({
             </View>
 
             <FormNumberField
-              label="Giá trị dinh dưỡng"
-              required
+              label="Giá trị dinh dưỡng (calo)"
               value={ui.calories}
               onChangeText={ui.onChangeCalories}
               error={ui.errors.calories}
