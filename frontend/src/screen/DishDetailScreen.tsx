@@ -1,8 +1,7 @@
 import React from "react";
-import { SafeAreaView } from "react-native";
 import { useDishDetailUI } from "@/src/hooks/useDishDetailUI";
 import DishDetailContent from "@/components/home/DishDetailContent";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 export default function DishDetailScreen() {
   const {
     dish,

@@ -2,11 +2,11 @@ import React from "react";
 import {
   ActivityIndicator,
   FlatList,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useMealPlanUI } from "@/src/hooks/useMealPlanUI";
 import MealPlanHeader from "@/components/meal-plan/MealPlanHeader";
 import MealPlanWeekTable from "@/components/meal-plan/MealPlanWeekTable";
@@ -60,6 +60,7 @@ export default function MealPlanScreen() {
     detailModalVisible,
     selectedDishId,
     closeDishDetailModal,
+    addedDishIdSet
   } = useMealPlanUI();
 
   if (screenLoading && !weekData) {
@@ -154,6 +155,7 @@ export default function MealPlanScreen() {
         loading={dishPickerLoading}
         error={dishPickerError}
         assigningDishId={assigningDishId}
+        addedDishIdSet={addedDishIdSet}
         onChangeSearch={setDishSearch}
         onSubmitSearch={submitDishSearch}
         onClose={closeDishPicker}
@@ -479,8 +481,8 @@ const styles = StyleSheet.create({
   modalTitle: {
     flex: 1,
     color: GREEN,
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 20,
+    fontWeight: "700",
   },
 
   searchBox: {
@@ -540,11 +542,22 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     flexShrink: 1,
   },
-  favoriteBadge: {
+  dishImageWrapper: {
+    position: "relative",
+    width: 78,
+    height: 78,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "#D9D9D9",
+  },
+  favoriteBadgeOnImage: {
+    position: "absolute",
+    top: 6,
+    right: 6,
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#F4F8F1",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -568,8 +581,16 @@ const styles = StyleSheet.create({
   },
   addDishButtonText: {
     color: GREEN,
-    fontWeight: "800",
-    fontSize: 16,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  addDishButtonDisabled: {
+    backgroundColor: "#E0E0E0", // xám
+    opacity: 1, // bỏ mờ đi để nhìn rõ hơn
+  },
+  addDishButtonTextDisabled: {
+    color: "#333333",   // chữ đen
+    fontWeight: "400",  // không in đậm
   },
 
   infoBox: {

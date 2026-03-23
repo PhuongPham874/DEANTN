@@ -1,5 +1,4 @@
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { TouchableWithoutFeedback, Keyboard } from "react-native";
 import { Ionicons } from "@expo/vector-icons";

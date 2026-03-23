@@ -17,6 +17,7 @@ type DishCardProps = {
   styles: any;
   item: MealPlanAvailableDish;
   assigning: boolean;
+  added: boolean;
   onAssign: () => void;
 };
 
@@ -24,25 +25,33 @@ function DishPickerCard({
   styles,
   item,
   assigning,
+  added,
   onAssign,
 }: DishCardProps) {
+  const disabled = assigning || added;
+
   return (
     <View style={styles.dishCard}>
-      <Image
-        source={
-          item.image ? { uri: item.image } : require("@/assets/images/icon.png")
-        }
-        style={styles.dishImage}
-      />
+      <View style={styles.dishImageWrapper}>
+        <Image
+          source={
+            item.image ? { uri: item.image } : require("@/assets/images/icon.png")
+          }
+          style={styles.dishImage}
+        />
+
+        <View style={styles.favoriteBadgeOnImage}>
+          <Ionicons
+            name={item.is_favorite ? "heart" : "heart-outline"}
+            size={14}
+            color={item.is_favorite ? "#5D9625" : "#A0A0A0"}
+          />
+        </View>
+      </View>
 
       <View style={styles.dishContent}>
         <View style={styles.dishTitleRow}>
           <Text style={styles.dishName}>{item.dish_name}</Text>
-          {item.is_favorite ? (
-            <View style={styles.favoriteBadge}>
-              <Ionicons name="heart" size={14} color="#5D9625" />
-            </View>
-          ) : null}
         </View>
 
         <View style={styles.dishMetaRow}>
@@ -52,14 +61,24 @@ function DishPickerCard({
       </View>
 
       <TouchableOpacity
-        style={styles.addDishButton}
+        style={[
+          styles.addDishButton,
+          disabled ? styles.addDishButtonDisabled : null,
+        ]}
         onPress={onAssign}
-        disabled={assigning}
+        disabled={disabled}
       >
         {assigning ? (
           <ActivityIndicator size="small" color="#5D9625" />
         ) : (
-          <Text style={styles.addDishButtonText}>+ Thêm</Text>
+          <Text
+            style={[
+              styles.addDishButtonText,
+              added ? styles.addDishButtonTextDisabled : null,
+            ]}
+          >
+            {added ? "Đã thêm" : "+ Thêm"}
+          </Text>
         )}
       </TouchableOpacity>
     </View>
@@ -74,10 +93,11 @@ type Props = {
   loading: boolean;
   error: string;
   assigningDishId: number | null;
+  addedDishIdSet: Set<number>;
   onChangeSearch: (value: string) => void;
   onSubmitSearch: () => void;
   onClose: () => void;
-  onAssignDish: (dish: MealPlanAvailableDish) => void;
+  onAssignDish: (dish: MealPlanAvailableDish) => void | Promise<void>;
 };
 
 export default function DishPickerModal({
@@ -88,15 +108,32 @@ export default function DishPickerModal({
   loading,
   error,
   assigningDishId,
+  addedDishIdSet,
   onChangeSearch,
   onSubmitSearch,
   onClose,
   onAssignDish,
 }: Props) {
+  const handleAssignDish = async (dish: MealPlanAvailableDish) => {
+    if (addedDishIdSet.has(dish.dish_id) || assigningDishId === dish.dish_id) {
+      return;
+    }
+
+    await Promise.resolve(onAssignDish(dish));
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.modalCardLarge} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={styles.modalCardLarge}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Chọn món cho thực đơn</Text>
             <TouchableOpacity onPress={onClose}>
@@ -129,14 +166,20 @@ export default function DishPickerModal({
               keyExtractor={(item) => String(item.dish_id)}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.modalListContent}
-              renderItem={({ item }) => (
-                <DishPickerCard
-                  styles={styles}
-                  item={item}
-                  assigning={assigningDishId === item.dish_id}
-                  onAssign={() => onAssignDish(item)}
-                />
-              )}
+              renderItem={({ item }) => {
+                const isAdded = addedDishIdSet.has(item.dish_id);
+                const isAssigning = assigningDishId === item.dish_id;
+
+                return (
+                  <DishPickerCard
+                    styles={styles}
+                    item={item}
+                    assigning={isAssigning}
+                    added={isAdded}
+                    onAssign={() => handleAssignDish(item)}
+                  />
+                );
+              }}
               ListEmptyComponent={
                 <Text style={styles.emptyText}>Chưa có món ăn nào để thêm</Text>
               }

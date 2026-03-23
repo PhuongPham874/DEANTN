@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Platform, ToastAndroid } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import {
   ApiFormError,
   assignMealPlanDishApi,
@@ -13,7 +13,6 @@ import {
   getCopyWeekOptionsApi,
   getMealPlanDishesApi,
   getMealPlanWeekApi,
-  type AssignedDishItem,
   type CopyDayOptionItem,
   type CopyWeekOptionItem,
   type MealPlanAvailableDish,
@@ -28,6 +27,19 @@ type PickerContext = {
   meal_type: MealType;
   label: string;
 } | null;
+
+type DishPickerState = {
+  visible: boolean;
+  loading: boolean;
+  error: string;
+  search: string;
+  searchError: string;
+  dishes: MealPlanAvailableDish[];
+  context: PickerContext;
+  assigningDishId: number | null;
+  existingDishIds: number[];
+  addedDishIds: number[];
+};
 
 type CopyWeekState = {
   visible: boolean;
@@ -53,6 +65,19 @@ type CopyDayState = {
   selectedTargetDate: string | null;
   generalError: string;
   fieldErrors: Record<string, string>;
+};
+
+const DEFAULT_DISH_PICKER_STATE: DishPickerState = {
+  visible: false,
+  loading: false,
+  error: "",
+  search: "",
+  searchError: "",
+  dishes: [],
+  context: null,
+  assigningDishId: null,
+  existingDishIds: [],
+  addedDishIds: [],
 };
 
 const DEFAULT_COPY_WEEK_STATE: CopyWeekState = {
@@ -102,11 +127,6 @@ function formatWeekLabel(startDate?: string | null, endDate?: string | null) {
   return `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`;
 }
 
-function formatWeekTitle(startDate?: string | null, endDate?: string | null) {
-  if (!startDate || !endDate) return "";
-  return `TUẦN ${formatWeekLabel(startDate, endDate)}`;
-}
-
 function mapCopyWeekFieldErrors(fieldErrors: Record<string, string>) {
   const mapped: Record<string, string> = {};
 
@@ -144,69 +164,80 @@ function mapCopyDayFieldErrors(fieldErrors: Record<string, string>) {
 }
 
 export function useMealPlanUI() {
-  const router = useRouter();
-
   const [weekData, setWeekData] = useState<MealPlanWeekData | null>(null);
   const [screenLoading, setScreenLoading] = useState(true);
   const [screenRefreshing, setScreenRefreshing] = useState(false);
   const [screenError, setScreenError] = useState("");
 
-  const [dishPickerVisible, setDishPickerVisible] = useState(false);
-  const [dishPickerLoading, setDishPickerLoading] = useState(false);
-  const [dishPickerError, setDishPickerError] = useState("");
-  const [dishSearch, setDishSearch] = useState("");
-  const [dishSearchError, setDishSearchError] = useState("");
-  const [availableDishes, setAvailableDishes] = useState<MealPlanAvailableDish[]>([]);
-  const [pickerContext, setPickerContext] = useState<PickerContext>(null);
-  const [assigningDishId, setAssigningDishId] = useState<number | null>(null);
+  const [dishPickerState, setDishPickerState] = useState<DishPickerState>(
+    DEFAULT_DISH_PICKER_STATE
+  );
 
   const [copyWeekState, setCopyWeekState] = useState<CopyWeekState>(DEFAULT_COPY_WEEK_STATE);
   const [copyDayState, setCopyDayState] = useState<CopyDayState>(DEFAULT_COPY_DAY_STATE);
+
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedDishId, setSelectedDishId] = useState<number | null>(null);
 
   const weekTitle = useMemo(() => {
     if (!weekData) return "";
     return formatWeekLabel(weekData.start_date, weekData.end_date);
   }, [weekData]);
 
-  const loadWeek = useCallback(
-    async (date?: string, isRefreshing = false) => {
-      try {
-        if (isRefreshing) {
-          setScreenRefreshing(true);
-        } else {
-          setScreenLoading(true);
-        }
+  const addedDishIdSet = useMemo(() => {
+    return new Set([
+      ...dishPickerState.existingDishIds,
+      ...dishPickerState.addedDishIds,
+    ]);
+  }, [dishPickerState.existingDishIds, dishPickerState.addedDishIds]);
 
-        setScreenError("");
-
-        const response = await getMealPlanWeekApi(date);
-        setWeekData(response.data);
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Không thể tải thực đơn tuần";
-        setScreenError(message);
-      } finally {
-        setScreenLoading(false);
-        setScreenRefreshing(false);
+  const loadWeek = useCallback(async (date?: string, isRefreshing = false) => {
+    try {
+      if (isRefreshing) {
+        setScreenRefreshing(true);
+      } else {
+        setScreenLoading(true);
       }
-    },
-    []
-  );
+
+      setScreenError("");
+
+      const response = await getMealPlanWeekApi(date);
+      setWeekData(response.data);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Không thể tải thực đơn tuần";
+      setScreenError(message);
+    } finally {
+      setScreenLoading(false);
+      setScreenRefreshing(false);
+    }
+  }, []);
 
   const loadAvailableDishes = useCallback(async (searchText?: string) => {
     try {
-      setDishPickerLoading(true);
-      setDishPickerError("");
-      setDishSearchError("");
+      setDishPickerState((prev) => ({
+        ...prev,
+        loading: true,
+        error: "",
+        searchError: "",
+      }));
 
       const response = await getMealPlanDishesApi(searchText);
-      setAvailableDishes(response.data.dishes);
+
+      setDishPickerState((prev) => ({
+        ...prev,
+        loading: false,
+        dishes: response.data.dishes,
+      }));
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Không thể tải danh sách món ăn";
-      setDishPickerError(message);
-    } finally {
-      setDishPickerLoading(false);
+
+      setDishPickerState((prev) => ({
+        ...prev,
+        loading: false,
+        error: message,
+      }));
     }
   }, []);
 
@@ -223,39 +254,77 @@ export function useMealPlanUI() {
 
   const openDishPicker = useCallback(
     async (day: MealPlanDay, meal: MealPlanMeal) => {
-      setPickerContext({
-        date: day.date,
-        meal_type: meal.meal_type,
-        label: `${meal.label} - ${day.weekday_label}`,
+      const seededExistingDishIds = meal.dishes.map((dish) => dish.dish_id);
+
+      setDishPickerState({
+        visible: true,
+        loading: true,
+        error: "",
+        search: "",
+        searchError: "",
+        dishes: [],
+        context: {
+          date: day.date,
+          meal_type: meal.meal_type,
+          label: `${meal.label} - ${day.weekday_label}`,
+        },
+        assigningDishId: null,
+        existingDishIds: seededExistingDishIds,
+        addedDishIds: [],
       });
-      setDishSearch("");
-      setDishPickerVisible(true);
-      await loadAvailableDishes("");
+
+      try {
+        const response = await getMealPlanDishesApi("");
+
+        setDishPickerState((prev) => ({
+          ...prev,
+          loading: false,
+          dishes: response.data.dishes,
+        }));
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Không thể tải danh sách món ăn";
+
+        setDishPickerState((prev) => ({
+          ...prev,
+          loading: false,
+          error: message,
+        }));
+      }
     },
-    [loadAvailableDishes]
+    []
   );
 
   const closeDishPicker = useCallback(() => {
-    setDishPickerVisible(false);
-    setDishPickerError("");
-    setDishSearch("");
-    setDishSearchError("");
-    setAvailableDishes([]);
-    setPickerContext(null);
-    setAssigningDishId(null);
+    setDishPickerState(DEFAULT_DISH_PICKER_STATE);
+  }, []);
+
+  const setDishSearch = useCallback((value: string) => {
+    setDishPickerState((prev) => ({
+      ...prev,
+      search: value,
+    }));
   }, []);
 
   const submitDishSearch = useCallback(async () => {
-    await loadAvailableDishes(dishSearch);
-  }, [dishSearch, loadAvailableDishes]);
+    await loadAvailableDishes(dishPickerState.search);
+  }, [dishPickerState.search, loadAvailableDishes]);
 
   const assignDish = useCallback(
     async (dish: MealPlanAvailableDish) => {
+      const pickerContext = dishPickerState.context;
       if (!pickerContext) return;
 
+      if (addedDishIdSet.has(dish.dish_id)) {
+        return;
+      }
+
       try {
-        setAssigningDishId(dish.dish_id);
-        setDishPickerError("");
+        setDishPickerState((prev) => ({
+          ...prev,
+          assigningDishId: dish.dish_id,
+          error: "",
+        }));
 
         await assignMealPlanDishApi({
           dish_id: dish.dish_id,
@@ -263,22 +332,34 @@ export function useMealPlanUI() {
           meal_type: pickerContext.meal_type,
         });
 
+        setDishPickerState((prev) => ({
+          ...prev,
+          assigningDishId: null,
+          addedDishIds: prev.addedDishIds.includes(dish.dish_id)
+            ? prev.addedDishIds
+            : [...prev.addedDishIds, dish.dish_id],
+        }));
+
         await loadWeek(weekData?.start_date || pickerContext.date);
-        closeDishPicker();
         showMessage("Thêm món vào thực đơn thành công");
       } catch (error) {
         if (error instanceof ApiFormError) {
-          setDishPickerError(error.message);
+          setDishPickerState((prev) => ({
+            ...prev,
+            assigningDishId: null,
+            error: error.message,
+          }));
         } else {
-          setDishPickerError(
-            error instanceof Error ? error.message : "Không thể thêm món vào thực đơn"
-          );
+          setDishPickerState((prev) => ({
+            ...prev,
+            assigningDishId: null,
+            error:
+              error instanceof Error ? error.message : "Không thể thêm món vào thực đơn",
+          }));
         }
-      } finally {
-        setAssigningDishId(null);
       }
     },
-    [pickerContext, loadWeek, weekData?.start_date, closeDishPicker]
+    [dishPickerState.context, addedDishIdSet, loadWeek, weekData?.start_date]
   );
 
   const deleteAssignedDish = useCallback(
@@ -384,19 +465,17 @@ export function useMealPlanUI() {
     loadWeek(weekData?.start_date, true);
   }, [loadWeek, weekData?.start_date]);
 
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [selectedDishId, setSelectedDishId] = useState<number | null>(null);
   const onPressDishDetail = useCallback((dishId: number) => {
     setSelectedDishId(dishId);
     setDetailModalVisible(true);
-    }, []);
+  }, []);
 
   const closeDishDetailModal = useCallback(async () => {
     setDetailModalVisible(false);
     setSelectedDishId(null);
     await loadWeek(weekData?.start_date);
-    }, [loadWeek, weekData?.start_date]);
-    
+  }, [loadWeek, weekData?.start_date]);
+
   const openCopyWeekModal = useCallback(async () => {
     if (!weekData?.start_date) return;
 
@@ -443,40 +522,43 @@ export function useMealPlanUI() {
     setCopyWeekState(DEFAULT_COPY_WEEK_STATE);
   }, []);
 
-  const loadCopyWeekOptions = useCallback(async (monthDate: string) => {
-    if (!copyWeekState.sourceStartDate) return;
+  const loadCopyWeekOptions = useCallback(
+    async (monthDate: string) => {
+      if (!copyWeekState.sourceStartDate) return;
 
-    try {
-      setCopyWeekState((prev) => ({
-        ...prev,
-        loading: true,
-        generalError: "",
-      }));
+      try {
+        setCopyWeekState((prev) => ({
+          ...prev,
+          loading: true,
+          generalError: "",
+        }));
 
-      const response = await getCopyWeekOptionsApi({
-        source_start_date: copyWeekState.sourceStartDate,
-        month_date: monthDate,
-      });
+        const response = await getCopyWeekOptionsApi({
+          source_start_date: copyWeekState.sourceStartDate,
+          month_date: monthDate,
+        });
 
-      setCopyWeekState((prev) => ({
-        ...prev,
-        loading: false,
-        monthDate,
-        monthRangeLabel: formatWeekLabel(
-          response.data.month_range.start_date,
-          response.data.month_range.end_date
-        ),
-        weeks: response.data.weeks,
-      }));
-    } catch (error) {
-      setCopyWeekState((prev) => ({
-        ...prev,
-        loading: false,
-        generalError:
-          error instanceof Error ? error.message : "Không thể tải danh sách tuần đích",
-      }));
-    }
-  }, [copyWeekState.sourceStartDate]);
+        setCopyWeekState((prev) => ({
+          ...prev,
+          loading: false,
+          monthDate,
+          monthRangeLabel: formatWeekLabel(
+            response.data.month_range.start_date,
+            response.data.month_range.end_date
+          ),
+          weeks: response.data.weeks,
+        }));
+      } catch (error) {
+        setCopyWeekState((prev) => ({
+          ...prev,
+          loading: false,
+          generalError:
+            error instanceof Error ? error.message : "Không thể tải danh sách tuần đích",
+        }));
+      }
+    },
+    [copyWeekState.sourceStartDate]
+  );
 
   const submitCopyWeek = useCallback(async () => {
     if (!copyWeekState.sourceStartDate) return;
@@ -578,40 +660,43 @@ export function useMealPlanUI() {
     setCopyDayState(DEFAULT_COPY_DAY_STATE);
   }, []);
 
-  const loadCopyDayOptions = useCallback(async (weekDate: string) => {
-    if (!copyDayState.sourceDate) return;
+  const loadCopyDayOptions = useCallback(
+    async (weekDate: string) => {
+      if (!copyDayState.sourceDate) return;
 
-    try {
-      setCopyDayState((prev) => ({
-        ...prev,
-        loading: true,
-        generalError: "",
-      }));
+      try {
+        setCopyDayState((prev) => ({
+          ...prev,
+          loading: true,
+          generalError: "",
+        }));
 
-      const response = await getCopyDayOptionsApi({
-        source_date: copyDayState.sourceDate,
-        week_date: weekDate,
-      });
+        const response = await getCopyDayOptionsApi({
+          source_date: copyDayState.sourceDate,
+          week_date: weekDate,
+        });
 
-      setCopyDayState((prev) => ({
-        ...prev,
-        loading: false,
-        weekDate,
-        weekLabel: formatWeekLabel(
-          response.data.week_start_date,
-          response.data.week_end_date
-        ),
-        days: response.data.days,
-      }));
-    } catch (error) {
-      setCopyDayState((prev) => ({
-        ...prev,
-        loading: false,
-        generalError:
-          error instanceof Error ? error.message : "Không thể tải danh sách ngày đích",
-      }));
-    }
-  }, [copyDayState.sourceDate]);
+        setCopyDayState((prev) => ({
+          ...prev,
+          loading: false,
+          weekDate,
+          weekLabel: formatWeekLabel(
+            response.data.week_start_date,
+            response.data.week_end_date
+          ),
+          days: response.data.days,
+        }));
+      } catch (error) {
+        setCopyDayState((prev) => ({
+          ...prev,
+          loading: false,
+          generalError:
+            error instanceof Error ? error.message : "Không thể tải danh sách ngày đích",
+        }));
+      }
+    },
+    [copyDayState.sourceDate]
+  );
 
   const submitCopyDay = useCallback(async () => {
     if (!copyDayState.sourceDate) return;
@@ -667,7 +752,7 @@ export function useMealPlanUI() {
     loadWeek,
   ]);
 
-    return {
+  return {
     screenLoading,
     screenRefreshing,
     screenError,
@@ -682,14 +767,17 @@ export function useMealPlanUI() {
     onPressDishDetail,
     confirmDeleteAssignedDish,
 
-    dishPickerVisible,
-    dishPickerLoading,
-    dishPickerError,
-    dishSearch,
-    dishSearchError,
-    availableDishes,
-    pickerContext,
-    assigningDishId,
+    dishPickerVisible: dishPickerState.visible,
+    dishPickerLoading: dishPickerState.loading,
+    dishPickerError: dishPickerState.error,
+    dishSearch: dishPickerState.search,
+    dishSearchError: dishPickerState.searchError,
+    availableDishes: dishPickerState.dishes,
+    pickerContext: dishPickerState.context,
+    assigningDishId: dishPickerState.assigningDishId,
+    existingDishIds: dishPickerState.existingDishIds,
+    addedDishIds: dishPickerState.addedDishIds,
+    addedDishIdSet,
     setDishSearch,
     submitDishSearch,
     openDishPicker,

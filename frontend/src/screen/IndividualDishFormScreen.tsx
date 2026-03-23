@@ -4,7 +4,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 import FormTextField from "@/components/individualDishForm/FormTextField";
 import FormNumberField from "@/components/individualDishForm/FormNumberField";
 import IngredientModal from "@/components/individualDishForm/IngredientModal";

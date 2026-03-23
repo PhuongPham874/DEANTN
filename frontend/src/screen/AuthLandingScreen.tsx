@@ -1,11 +1,11 @@
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
   StatusBar,
   Dimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthLanding } from "@/src/hooks/useAuthLanding";
 import AppButton from "@/components/ui/AppButton";
 import Logo from "@/assets/logo_green.svg";

@@ -1,6 +1,5 @@
 import React, { useMemo, useRef } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -15,7 +14,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import Logo from "@/assets/logo_green.svg";
 import AppButton from "@/components/ui/AppButton";
 import { useForgotPasswordFlow } from "@/src/hooks/useForgotPasswordUI";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 export default function VerifyOTPScreen() {
   const {
     email,

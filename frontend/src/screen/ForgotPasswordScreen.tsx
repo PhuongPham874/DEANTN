@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Logo from "@/assets/logo_green.svg";
 import AppButton from "@/components/ui/AppButton";

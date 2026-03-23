@@ -2,13 +2,13 @@ import React from "react";
 import {
   ActivityIndicator,
   FlatList,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import DishCard from "@/components/home/DishCard";
 import { useFavoriteUI } from "@/src/hooks/useFavoriteUI";
