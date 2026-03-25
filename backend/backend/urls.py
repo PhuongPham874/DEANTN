@@ -25,6 +25,8 @@ urlpatterns = [
     path("api/auth/", include("login.urls")),
     path("api/", include("home.urls")),
     path("api/", include("mealplan.urls")),
+    path("api/", include("inventory.urls")),
+    path("api/", include("shoppinglist.urls")),
 ]
 
 if settings.DEBUG:

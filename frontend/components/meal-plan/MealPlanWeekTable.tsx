@@ -11,6 +11,8 @@ type Props = {
   onDeleteDish: (planDetailId: number) => void;
   onCopyDay: (date: string) => void;
   onClearDay: (date: string) => void;
+  onCreateShoppingDay: (date: string) => void;
+  creatingDayShoppingDate?: string | null;
 };
 
 export default function MealPlanWeekTable({
@@ -21,6 +23,8 @@ export default function MealPlanWeekTable({
   onDeleteDish,
   onCopyDay,
   onClearDay,
+  onCreateShoppingDay,
+  creatingDayShoppingDate
 }: Props) {
   return (
     <View>
@@ -42,6 +46,8 @@ export default function MealPlanWeekTable({
           onDeleteDish={onDeleteDish}
           onCopyDay={onCopyDay}
           onClearDay={onClearDay}
+          onCreateShoppingDay={onCreateShoppingDay}
+          creatingDayShoppingDate={creatingDayShoppingDate}
         />
       ))}
     </View>

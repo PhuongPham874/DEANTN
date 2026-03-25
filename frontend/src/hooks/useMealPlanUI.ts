@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Platform, ToastAndroid } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { useRouter } from "expo-router";
+
 import {
   ApiFormError,
   assignMealPlanDishApi,
@@ -21,6 +23,10 @@ import {
   type MealPlanWeekData,
   type MealType,
 } from "@/src/api/mealPlanApi";
+import {
+  generateWeekShoppingList,
+  generateDayShoppingList,
+} from "@/src/api/shoppingListApi";
 
 type PickerContext = {
   date: string;
@@ -106,6 +112,7 @@ const DEFAULT_COPY_DAY_STATE: CopyDayState = {
   fieldErrors: {},
 };
 
+
 function showMessage(message: string) {
   if (Platform.OS === "android") {
     ToastAndroid.show(message, ToastAndroid.SHORT);
@@ -168,7 +175,9 @@ export function useMealPlanUI() {
   const [screenLoading, setScreenLoading] = useState(true);
   const [screenRefreshing, setScreenRefreshing] = useState(false);
   const [screenError, setScreenError] = useState("");
-
+  const router = useRouter();
+  const [creatingWeekShopping, setCreatingWeekShopping] = useState(false);
+  const [creatingDayShoppingDate, setCreatingDayShoppingDate] = useState<string | null>(null);
   const [dishPickerState, setDishPickerState] = useState<DishPickerState>(
     DEFAULT_DISH_PICKER_STATE
   );
@@ -752,6 +761,57 @@ export function useMealPlanUI() {
     loadWeek,
   ]);
 
+  const createShoppingWeek = useCallback(async () => {
+    if (!weekData?.start_date || creatingWeekShopping) return;
+
+    try {
+      setCreatingWeekShopping(true);
+
+      const response = await generateWeekShoppingList(weekData.start_date);
+
+      Alert.alert(
+        "Thành công",
+        response.message || "Đã tạo danh sách mua sắm tuần"
+      );
+
+      router.push("/shopping");
+    } catch (error: any) {
+      Alert.alert(
+        "Lỗi",
+        error?.message || "Không thể tạo danh sách mua sắm tuần"
+      );
+    } finally {
+      setCreatingWeekShopping(false);
+    }
+  }, [weekData?.start_date, creatingWeekShopping, router]);
+
+  const createShoppingDay = useCallback(
+    async (date: string) => {
+      if (!date || creatingDayShoppingDate === date) return;
+
+      try {
+        setCreatingDayShoppingDate(date);
+
+        const response = await generateDayShoppingList(date);
+
+        Alert.alert(
+          "Thành công",
+          response.message || "Đã tạo danh sách mua sắm ngày"
+        );
+
+        router.push("/shopping");
+      } catch (error: any) {
+        Alert.alert(
+          "Lỗi",
+          error?.message || "Không thể tạo danh sách mua sắm ngày"
+        );
+      } finally {
+        setCreatingDayShoppingDate(null);
+      }
+    },
+    [creatingDayShoppingDate, router]
+  );
+
   return {
     screenLoading,
     screenRefreshing,
@@ -801,5 +861,10 @@ export function useMealPlanUI() {
     detailModalVisible,
     selectedDishId,
     closeDishDetailModal,
+
+    createShoppingWeek,
+    createShoppingDay,
+    creatingWeekShopping,
+    creatingDayShoppingDate,
   };
 }

@@ -100,6 +100,7 @@ class Ingredient(models.Model):
         choices=CATEGORY_CHOICES, 
         default='thực phẩm'
     )
+    is_system = models.BooleanField(default=False)
 
     class Meta:
         db_table = "ingredient"
@@ -119,7 +120,7 @@ class DishDetail(models.Model):
         on_delete=models.CASCADE,
         related_name="dish_details"
     )
-    quantity = models.IntegerField()
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     unit = models.CharField(max_length=10)
 
     class Meta:

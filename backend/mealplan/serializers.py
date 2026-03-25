@@ -2,7 +2,7 @@ from datetime import date
 
 from rest_framework import serializers
 
-from .models import MealPlanDetail
+from .models import MealPlanDetail, Ingredient
 
 
 class MealPlanWeekQuerySerializer(serializers.Serializer):
@@ -83,3 +83,6 @@ class CopyMealPlanDaySerializer(serializers.Serializer):
     
 class ClearMealPlanDaySerializer(serializers.Serializer):
     date = serializers.DateField(required=True)
+
+
+

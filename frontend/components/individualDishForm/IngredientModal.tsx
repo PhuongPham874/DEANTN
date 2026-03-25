@@ -50,6 +50,20 @@ type Props = {
   onSave: () => void;
 };
 
+const unitOptions: OptionItem[] = [
+  { label: "Chọn đơn vị", value: "" },
+  { label: "g", value: "g" },
+  { label: "kg", value: "kg" },
+  { label: "ml", value: "ml" },
+  { label: "l", value: "l" },
+  { label: "quả", value: "quả" },
+  { label: "củ", value: "củ" },
+  { label: "tép", value: "tép" },
+  { label: "bó", value: "bó" },
+  { label: "muỗng cà phê", value: "muỗng cà phê" },
+  { label: "muỗng canh", value: "muỗng canh" },
+];
+
 function SelectField({
   label,
   required = false,
@@ -132,12 +146,13 @@ export default function IngredientModal({
               </View>
 
               <View style={styles.half}>
-                <FormTextField
+                <SelectField
                   label="Đơn vị"
                   required
                   value={draft.unit}
-                  onChangeText={(value) => onChangeDraft("unit", value)}
+                  options={unitOptions}
                   error={errors.unit}
+                  onChange={(value) => onChangeDraft("unit", value)}
                 />
               </View>
             </View>
@@ -233,15 +248,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#DDE5DE",
     justifyContent: "center",
     overflow: "hidden",
-    fontSize: 14,
   },
   picker: {
-    fontSize: 14,
     color: "#2F2F2F",
   },
   pickerItem: {
-  fontSize: 10, 
-},
+    fontSize: 14,
+  },
   errorText: {
     color: "#D93A3A",
     fontSize: 12,

@@ -18,6 +18,7 @@ from .serializers import (
 from .services import MealPlanService
 
 
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def meal_plan_week_view(request):

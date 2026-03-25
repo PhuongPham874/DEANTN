@@ -9,7 +9,8 @@ type Props = {
   onNextWeek: () => void;
   onCopyWeek: () => void;
   onClearWeek: () => void;
-  onPressShoppingWeek?: () => void;
+  onCreateShoppingWeek: () => void;
+  creatingWeekShopping?: boolean;
 };
 
 export default function MealPlanHeader({
@@ -19,7 +20,8 @@ export default function MealPlanHeader({
   onNextWeek,
   onCopyWeek,
   onClearWeek,
-  onPressShoppingWeek,
+  onCreateShoppingWeek,
+  creatingWeekShopping = false,
 }: Props) {
   return (
     <View>
@@ -48,7 +50,7 @@ export default function MealPlanHeader({
 
         <TouchableOpacity
           style={styles.smallGreenButton}
-          onPress={onPressShoppingWeek}
+          onPress={onCreateShoppingWeek}
         >
           <MaterialCommunityIcons name="cart-outline" size={14} color="#FFFFFF" />
           <Text style={styles.smallButtonText}>Mua sắm tuần</Text>

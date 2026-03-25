@@ -12,6 +12,8 @@ type Props = {
   onDeleteDish: (planDetailId: number) => void;
   onCopyDay: (date: string) => void;
   onClearDay: (date: string) => void;
+  onCreateShoppingDay: (date: string) => void;
+  creatingDayShoppingDate?: string | null;
 };
 
 export default function MealPlanDayRow({
@@ -22,11 +24,13 @@ export default function MealPlanDayRow({
   onDeleteDish,
   onCopyDay,
   onClearDay,
+  onCreateShoppingDay,
+  creatingDayShoppingDate,
 }: Props) {
   const hasAssignedDishes = day.meals.some(
     (meal) => meal.dishes && meal.dishes.length > 0
   );
-
+const isCreatingShoppingDay = creatingDayShoppingDate === day.date;
   return (
     <View style={styles.rowBox}>
       <View style={styles.dayCell}>
@@ -48,7 +52,8 @@ export default function MealPlanDayRow({
       ))}
 
       <View style={styles.actionColumn}>
-        <TouchableOpacity style={styles.iconBox}>
+        <TouchableOpacity style={styles.iconBox}
+        onPress={() => onCreateShoppingDay(day.date)} >
           <MaterialCommunityIcons
             name="cart-outline"
             size={18}

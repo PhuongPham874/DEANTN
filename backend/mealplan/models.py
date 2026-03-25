@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from home.models import Dish
+from home.models import Dish, Ingredient
 
 
 class MealPlan(models.Model):

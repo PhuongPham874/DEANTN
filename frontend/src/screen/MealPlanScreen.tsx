@@ -60,7 +60,12 @@ export default function MealPlanScreen() {
     detailModalVisible,
     selectedDishId,
     closeDishDetailModal,
-    addedDishIdSet
+    addedDishIdSet,
+
+    createShoppingWeek,
+    createShoppingDay,
+    creatingWeekShopping,
+    creatingDayShoppingDate,
   } = useMealPlanUI();
 
   if (screenLoading && !weekData) {
@@ -132,6 +137,8 @@ export default function MealPlanScreen() {
               onNextWeek={goToNextWeek}
               onCopyWeek={openCopyWeekModal}
               onClearWeek={clearCurrentWeek}
+              onCreateShoppingWeek={createShoppingWeek}
+              creatingWeekShopping={creatingWeekShopping}
             />
 
             <MealPlanWeekTable
@@ -142,6 +149,8 @@ export default function MealPlanScreen() {
               onDeleteDish={confirmDeleteAssignedDish}
               onCopyDay={openCopyDayModal}
               onClearDay={confirmClearDayPlan}
+              onCreateShoppingDay={createShoppingDay}
+              creatingDayShoppingDate={creatingDayShoppingDate}
             />
           </>
         )}

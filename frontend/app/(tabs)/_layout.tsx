@@ -11,7 +11,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="home" options={{ title: "Trang chủ" }} />
       <Tabs.Screen name="favourite" options={{ title: "Món ăn" }}/>
       <Tabs.Screen name="mealplan" options={{ title: "Thực đơn" }} />
-      <Tabs.Screen name="shopping" />
+      <Tabs.Screen name="shopping" options={{ title: "Mua sắm" }} />
       <Tabs.Screen name="ingredient" />
     </Tabs>
   );

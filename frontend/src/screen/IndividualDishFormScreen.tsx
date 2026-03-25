@@ -32,8 +32,6 @@ function buildIngredientDisplayText(item: {
   quantity: number;
   unit: string;
   ingredient_name: string;
-  group_name?: string;
-  category?: string;
 }) {
   const compactUnits = ["g", "kg", "ml", "l"];
   const unit = item.unit?.trim() || "";
@@ -45,11 +43,7 @@ function buildIngredientDisplayText(item: {
     ? `${item.quantity} ${unit}`
     : `${item.quantity}`;
 
-  const meta = [item.group_name, item.category].filter(Boolean).join(" • ");
-
-  return meta
-    ? `${amountText} ${ingredientName} (${meta})`.trim()
-    : `${amountText} ${ingredientName}`.trim();
+  return `${amountText} ${ingredientName}`.trim();
 }
 
 export default function IndividualDishFormScreen({

@@ -2,6 +2,7 @@ from .models import Dish, IndividualDish, Ingredient, DishDetail, DishMethod
 from collections import OrderedDict
 from django.db import transaction
 from django.db.models import Q
+from decimal import Decimal
 
 class HomeService:
     @staticmethod
@@ -413,31 +414,40 @@ class IndividualService:
     
     @staticmethod
     def _get_or_create_ingredient(ingredient_data):
-        ingredient_name = ingredient_data["ingredient_name"].strip()
-
-        ingredient, _ = Ingredient.objects.get_or_create(
-            ingredient_name=ingredient_name,
-            defaults={
-                "group_name": ingredient_data["group_name"],
-                "category": ingredient_data["category"],
-            },
-        )
+        ingredient, _, _ = IngredientInputService.get_or_create_ingredient(ingredient_data)
         return ingredient
 
+    @staticmethod
+    def _merge_ingredient_inputs(ingredients_data):
+        merged_rows = IngredientMergeHelper.merge_rows(ingredients_data)
+
+        normalized_rows = []
+        for row in merged_rows:
+            normalized_rows.append({
+                "ingredient_name": (row.get("ingredient_name") or "").strip(),
+                "quantity": row.get("quantity"),
+                "unit": (row.get("unit") or "").strip(),
+                "group_name": row.get("group_name"),
+                "category": row.get("category"),
+            })
+
+        return normalized_rows
 
     @staticmethod
     def _replace_dish_details_and_methods(dish, ingredients_data, methods_data):
         dish.dish_details.all().delete()
         dish.methods.all().delete()
 
-        for ingredient_data in ingredients_data:
+        merged_ingredients = IndividualService._merge_ingredient_inputs(ingredients_data)
+
+        for ingredient_data in merged_ingredients:
             ingredient = IndividualService._get_or_create_ingredient(ingredient_data)
 
             DishDetail.objects.create(
                 dish=dish,
                 ingredient=ingredient,
                 quantity=ingredient_data["quantity"],
-                unit=ingredient_data["unit"].strip(),
+                unit=(ingredient_data["unit"] or "").strip(),
             )
 
         for index, method_data in enumerate(methods_data, start=1):
@@ -651,4 +661,203 @@ class IndividualService:
             },
         }
     
+class IngredientInputService:
+    @staticmethod
+    def normalize_payload(validated_data):
+        return {
+            "ingredient_name": validated_data["ingredient_name"].strip(),
+            "group_name": validated_data["group_name"],
+            "category": validated_data["category"],
+            "quantity": validated_data["quantity"],
+            "unit": (validated_data.get("unit") or "").strip(),
+        }
 
+    @staticmethod
+    def get_or_create_ingredient(validated_data):
+        data = IngredientInputService.normalize_payload(validated_data)
+
+        ingredient, created = Ingredient.objects.get_or_create(
+            ingredient_name=data["ingredient_name"],
+            defaults={
+                "group_name": data["group_name"],
+                "category": data["category"],
+            },
+        )
+
+        return ingredient, created, data
+
+
+
+class IngredientMergeHelper:
+    WEIGHT_BASE = "g"
+    VOLUME_BASE = "ml"
+
+    WEIGHT_FACTORS = {
+        "g": Decimal("1"),
+        "kg": Decimal("1000"),
+    }
+
+    VOLUME_FACTORS = {
+        "ml": Decimal("1"),
+        "l": Decimal("1000"),
+    }
+
+    @classmethod
+    def normalize_name(cls, name):
+        return " ".join((name or "").strip().lower().split())
+
+    @classmethod
+    def normalize_unit(cls, unit):
+        return (unit or "").strip().lower()
+
+    @classmethod
+    def get_group(cls, unit):
+        unit = cls.normalize_unit(unit)
+        if unit in cls.WEIGHT_FACTORS:
+            return "weight"
+        if unit in cls.VOLUME_FACTORS:
+            return "volume"
+        return "other"
+
+    @classmethod
+    def can_merge(cls, unit_a, unit_b):
+        unit_a = cls.normalize_unit(unit_a)
+        unit_b = cls.normalize_unit(unit_b)
+
+        if unit_a == unit_b:
+            return True
+
+        group_a = cls.get_group(unit_a)
+        group_b = cls.get_group(unit_b)
+
+        return group_a in {"weight", "volume"} and group_a == group_b
+
+    @classmethod
+    def to_base(cls, quantity, unit):
+        quantity = Decimal(str(quantity or 0))
+        unit = cls.normalize_unit(unit)
+        group = cls.get_group(unit)
+
+        if group == "weight":
+            return quantity * cls.WEIGHT_FACTORS[unit]
+        if group == "volume":
+            return quantity * cls.VOLUME_FACTORS[unit]
+        return quantity
+
+    @classmethod
+    def pick_output_unit(cls, units):
+        normalized_units = {cls.normalize_unit(unit) for unit in units}
+        groups = {cls.get_group(unit) for unit in normalized_units if unit}
+
+        if groups == {"weight"}:
+            if normalized_units == {"g"}:
+                return "g"
+            if normalized_units == {"kg"}:
+                return "kg"
+            return "kg"
+
+        if groups == {"volume"}:
+            if normalized_units == {"ml"}:
+                return "ml"
+            if normalized_units == {"l"}:
+                return "l"
+            return "l"
+
+        return next(iter(normalized_units), "")
+
+    @classmethod
+    def from_base(cls, base_quantity, output_unit):
+        base_quantity = Decimal(str(base_quantity or 0))
+        output_unit = cls.normalize_unit(output_unit)
+
+        if output_unit in cls.WEIGHT_FACTORS:
+            return base_quantity / cls.WEIGHT_FACTORS[output_unit]
+        if output_unit in cls.VOLUME_FACTORS:
+            return base_quantity / cls.VOLUME_FACTORS[output_unit]
+        return base_quantity
+
+    @classmethod
+    def merge_two(cls, quantity_a, unit_a, quantity_b, unit_b):
+        unit_a = cls.normalize_unit(unit_a)
+        unit_b = cls.normalize_unit(unit_b)
+
+        if not cls.can_merge(unit_a, unit_b):
+            return None
+
+        if unit_a == unit_b:
+            return {
+                "quantity": Decimal(str(quantity_a or 0)) + Decimal(str(quantity_b or 0)),
+                "unit": unit_a,
+            }
+
+        total_base = cls.to_base(quantity_a, unit_a) + cls.to_base(quantity_b, unit_b)
+        output_unit = cls.pick_output_unit([unit_a, unit_b])
+
+        return {
+            "quantity": cls.from_base(total_base, output_unit),
+            "unit": output_unit,
+        }
+
+    @classmethod
+    def build_merge_key(cls, ingredient_name, unit):
+        name_key = cls.normalize_name(ingredient_name)
+        unit = cls.normalize_unit(unit)
+        group = cls.get_group(unit)
+
+        if group == "weight":
+            return (name_key, "weight")
+        if group == "volume":
+            return (name_key, "volume")
+        return (name_key, unit)
+
+    @classmethod
+    def merge_rows(cls, rows):
+        """
+        rows = [
+            {
+                "ingredient_name": "...",
+                "quantity": ...,
+                "unit": "...",
+                ...
+            }
+        ]
+        """
+        merged = {}
+
+        for row in rows:
+            ingredient_name = row.get("ingredient_name", "")
+            quantity = Decimal(str(row.get("quantity") or 0))
+            unit = cls.normalize_unit(row.get("unit"))
+            key = cls.build_merge_key(ingredient_name, unit)
+
+            if key not in merged:
+                merged[key] = {
+                    **row,
+                    "quantity": quantity,
+                    "unit": unit,
+                    "_units_seen": {unit},
+                }
+                continue
+
+            current = merged[key]
+            current["_units_seen"].add(unit)
+
+            merged_result = cls.merge_two(
+                current["quantity"],
+                current["unit"],
+                quantity,
+                unit,
+            )
+
+            if merged_result is not None:
+                current["quantity"] = merged_result["quantity"]
+                current["unit"] = merged_result["unit"]
+            else:
+                current["quantity"] += quantity
+
+        results = []
+        for item in merged.values():
+            item.pop("_units_seen", None)
+            results.append(item)
+
+        return results

@@ -42,7 +42,9 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'login',
     'home',
-    'mealplan'
+    'mealplan',
+    'inventory',
+    'shoppinglist'
 ]
 
 MIDDLEWARE = [
