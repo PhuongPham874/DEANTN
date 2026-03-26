@@ -45,20 +45,6 @@ export type CreateFoodInventoryResponse = {
   };
 };
 
-export type UpdateFoodInventoryResponse = {
-  message: string;
-  data: {
-    food_inventory_id: number;
-    ingredient_id: number;
-    ingredient_name: string;
-    quantity: number;
-    unit: string;
-    group_name: string;
-    category: string;
-    merged_from_food_inventory_id?: number;
-  };
-};
-
 export type DeleteFoodInventoryResponse = {
   message: string;
   data: {
@@ -160,27 +146,6 @@ export async function createFoodInventory(
   }
 
   return data as CreateFoodInventoryResponse;
-}
-
-export async function updateFoodInventory(
-  foodInventoryId: number,
-  payload: UpsertFoodInventoryPayload
-): Promise<UpdateFoodInventoryResponse> {
-  const response = await authFetch(`${API_BASE_URL}/inventory/update/`, {
-    method: "POST",
-    body: JSON.stringify({
-      food_inventory_id: foodInventoryId,
-      ...payload,
-    }),
-  });
-
-  const data = await parseJsonSafely(response);
-
-  if (!response.ok) {
-    throw new Error(data?.message || "Không thể cập nhật nguyên liệu trong kho");
-  }
-
-  return data as UpdateFoodInventoryResponse;
 }
 
 export async function deleteFoodInventory(

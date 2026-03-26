@@ -93,34 +93,6 @@ def food_inventory_create_view(request):
     )
 
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def food_inventory_update_view(request):
-    serializer = FoodInventoryUpdateSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    result = FoodInventoryService.update_food_inventory(
-        user=request.user,
-        validated_data=serializer.validated_data,
-    )
-
-    if not result["success"]:
-        return Response(
-            {
-                "message": result["message"],
-                "data": None,
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    return Response(
-        {
-            "message": result["message"],
-            "data": result["data"],
-        },
-        status=status.HTTP_200_OK,
-    )
-
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])

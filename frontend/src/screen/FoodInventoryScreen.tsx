@@ -20,7 +20,6 @@ import { useFoodInventoryUI } from "@/src/hooks/useFoodInventoryUI";
 type InventoryCardProps = {
   name: string;
   subtitle: string;
-  onEdit: () => void;
   onDelete: () => void;
   deleting?: boolean;
 };
@@ -28,7 +27,6 @@ type InventoryCardProps = {
 function InventoryCard({
   name,
   subtitle,
-  onEdit,
   onDelete,
   deleting,
 }: InventoryCardProps) {
@@ -44,10 +42,6 @@ function InventoryCard({
       </View>
 
       <View style={styles.cardActions}>
-        <TouchableOpacity style={styles.iconButton} onPress={onEdit} activeOpacity={0.8}>
-          <Feather name="edit-2" size={20} color="#6B9D2E" />
-        </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.iconButton}
           onPress={onDelete}
@@ -83,6 +77,7 @@ export default function FoodInventoryScreen() {
     draft,
     draftErrors,
     deletingItemId,
+    savingDraft,
 
     unitOptions,
     groupOptions,
@@ -92,7 +87,6 @@ export default function FoodInventoryScreen() {
     reload,
 
     openCreateModal,
-    openEditModal,
     closeModal,
     onChangeDraft,
     onSaveDraft,
@@ -181,7 +175,6 @@ export default function FoodInventoryScreen() {
               name={item.ingredient_name}
               subtitle={getItemSubtitle(item)}
               deleting={deletingItemId === item.food_inventory_id}
-              onEdit={() => openEditModal(item)}
               onDelete={() => onDeleteItem(item)}
             />
           </View>
@@ -231,7 +224,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 18,
   },
-  
+
   aiButton: {
     width: 34,
     height: 34,

@@ -7,7 +7,6 @@ import {
   deleteFoodInventory,
   FoodInventoryItem,
   getFoodInventoryList,
-  updateFoodInventory,
 } from "@/src/api/foodInventoryApi";
 
 type DraftState = {
@@ -89,6 +88,10 @@ function formatQuantity(value: number) {
   return Number.isInteger(value) ? String(value) : String(value);
 }
 
+const GROUP_LABEL_MAP: Record<string, string> = Object.fromEntries(
+  groupOptions.map((opt) => [opt.value, opt.label])
+);
+
 export function useFoodInventoryUI() {
   const [items, setItems] = useState<FoodInventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +102,6 @@ export function useFoodInventoryUI() {
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingItem, setEditingItem] = useState<FoodInventoryItem | null>(null);
   const [draft, setDraft] = useState<DraftState>(createInitialDraft());
   const [draftErrors, setDraftErrors] = useState<DraftErrors>({});
   const [savingDraft, setSavingDraft] = useState(false);
@@ -162,21 +164,7 @@ export function useFoodInventoryUI() {
   }, []);
 
   const openCreateModal = useCallback(() => {
-    setEditingItem(null);
     setDraft(createInitialDraft());
-    setDraftErrors({});
-    setModalVisible(true);
-  }, []);
-
-  const openEditModal = useCallback((item: FoodInventoryItem) => {
-    setEditingItem(item);
-    setDraft({
-      ingredient_name: item.ingredient_name,
-      quantity: formatQuantity(item.quantity),
-      unit: item.unit,
-      group_name: item.group_name,
-      category: item.category,
-    });
     setDraftErrors({});
     setModalVisible(true);
   }, []);
@@ -185,10 +173,6 @@ export function useFoodInventoryUI() {
     if (savingDraft) return;
     setModalVisible(false);
   }, [savingDraft]);
-
-  const GROUP_LABEL_MAP = Object.fromEntries(
-    groupOptions.map(opt => [opt.value, opt.label])
-    );
 
   const validateDraft = useCallback(() => {
     const nextErrors: DraftErrors = {};
@@ -220,6 +204,7 @@ export function useFoodInventoryUI() {
   }, [draft]);
 
   const onSaveDraft = useCallback(async () => {
+    if (savingDraft) return;
     if (!validateDraft()) return;
 
     try {
@@ -229,22 +214,18 @@ export function useFoodInventoryUI() {
         ingredient_name: draft.ingredient_name.trim(),
         quantity: Number(draft.quantity),
         unit: draft.unit.trim(),
-        group_name: draft.group_name,
-        category: draft.category,
+        group_name: draft.group_name.trim(),
+        category: draft.category.trim(),
       };
 
-      const response = editingItem
-        ? await updateFoodInventory(editingItem.food_inventory_id, payload)
-        : await createFoodInventory(payload);
+      const response = await createFoodInventory(payload);
 
       Alert.alert(
         "Thông báo",
-        response.message ||
-          (editingItem ? "Cập nhật nguyên liệu thành công" : "Thêm nguyên liệu thành công")
+        response.message || "Thêm nguyên liệu vào kho thành công"
       );
 
       setModalVisible(false);
-      setEditingItem(null);
       setDraft(createInitialDraft());
       setDraftErrors({});
       await fetchList(false);
@@ -253,7 +234,7 @@ export function useFoodInventoryUI() {
     } finally {
       setSavingDraft(false);
     }
-  }, [draft, editingItem, fetchList, validateDraft]);
+  }, [draft, fetchList, savingDraft, validateDraft]);
 
   const onDeleteItem = useCallback(
     (item: FoodInventoryItem) => {
@@ -284,14 +265,10 @@ export function useFoodInventoryUI() {
   );
 
   const getItemSubtitle = useCallback((item: FoodInventoryItem) => {
-  const amount = `${formatQuantity(item.quantity)} ${item.unit}`.trim();
-  
-  // Lấy label từ bảng tra cứu, nếu không có thì dùng chính group_name
-  const displayGroupName = GROUP_LABEL_MAP[item.group_name] || item.group_name;
-
-  // Trả về chuỗi với Label đẹp hơn
+    const amount = `${formatQuantity(item.quantity)} ${item.unit}`.trim();
+    const displayGroupName = GROUP_LABEL_MAP[item.group_name] || item.group_name;
     return `${displayGroupName}    ${amount}`;
-    }, []);
+  }, []);
 
   const emptyText = useMemo(() => {
     if (search.trim()) {
@@ -314,7 +291,6 @@ export function useFoodInventoryUI() {
     groupTabs: GROUP_TABS,
 
     modalVisible,
-    editingItem,
     draft,
     draftErrors,
     savingDraft,
@@ -328,7 +304,6 @@ export function useFoodInventoryUI() {
     onRefresh,
 
     openCreateModal,
-    openEditModal,
     closeModal,
     onChangeDraft,
     onSaveDraft,
