@@ -78,7 +78,7 @@ export function useShoppingListUI() {
 
   const onDeleteList = useCallback(
     (shoppingId: number) => {
-      Alert.alert("Xóa danh sách", "Bạn có chắc muốn xóa danh sách mua sắm này?", [
+      Alert.alert("Xác nhận xóa danh sách", "Bạn có chắc muốn xóa danh sách mua sắm này?", [
         { text: "Hủy", style: "cancel" },
         {
           text: "Xóa",

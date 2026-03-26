@@ -165,6 +165,7 @@ class MealPlanService:
         return {"dishes": dishes}
 
     @staticmethod
+    @transaction.atomic
     def assign_dish_to_meal(request, user, validated_data):
         dish_id = validated_data["dish_id"]
         target_date = validated_data["date"]
@@ -220,19 +221,41 @@ class MealPlanService:
             meal_type=meal_type,
         )
 
+        from shoppinglist.services import ShoppingListService
+
+        deleted_day = ShoppingListService.delete_day_shopping_data(
+            user=user,
+            plan=meal_plan,
+            target_date=target_date,
+        )
+        deleted_week = ShoppingListService.delete_week_shopping_data(
+            user=user,
+            plan=meal_plan,
+        )
+
+        shopping_reset = deleted_day or deleted_week
+
+        message = "Thêm món vào thực đơn thành công"
+        if shopping_reset:
+            message += ". Danh sách mua sắm liên quan đã được xóa do thực đơn thay đổi"
+
         return {
             "success": True,
-            "message": "Thêm món vào thực đơn thành công",
+            "message": message,
             "data": {
                 "plan_detail_id": detail.plan_detail_id,
                 "plan_id": meal_plan.plan_id,
                 "date": detail.date,
                 "meal_type": detail.meal_type,
                 "dish": MealPlanService.build_assigned_dish_item(request, detail),
+                "shopping_reset": shopping_reset,
+                "deleted_day_shopping": deleted_day,
+                "deleted_week_shopping": deleted_week,
             },
         }
 
     @staticmethod
+    @transaction.atomic
     def delete_meal_plan_detail(user, plan_detail_id):
         detail = (
             MealPlanDetail.objects.filter(
@@ -258,15 +281,41 @@ class MealPlanService:
             "dish_id": detail.dish.dish_id,
         }
 
+        plan = detail.plan
+        target_date = detail.date
         detail.delete()
+
+        from shoppinglist.services import ShoppingListService
+
+        deleted_day = ShoppingListService.delete_day_shopping_data(
+            user=user,
+            plan=plan,
+            target_date=target_date,
+        )
+        deleted_week = ShoppingListService.delete_week_shopping_data(
+            user=user,
+            plan=plan,
+        )
+
+        shopping_reset = deleted_day or deleted_week
+
+        message = "Xóa món khỏi thực đơn thành công"
+        if shopping_reset:
+            message += ". Danh sách mua sắm liên quan đã được xóa do thực đơn thay đổi"
 
         return {
             "success": True,
-            "message": "Xóa món khỏi thực đơn thành công",
-            "data": data,
+            "message": message,
+            "data": {
+                **data,
+                "shopping_reset": shopping_reset,
+                "deleted_day_shopping": deleted_day,
+                "deleted_week_shopping": deleted_week,
+            },
         }
 
     @staticmethod
+    @transaction.atomic
     def clear_week_plan(user, week_start):
         week_end = week_start + timedelta(days=6)
 
@@ -293,6 +342,17 @@ class MealPlanService:
         deleted_count = queryset.count()
         queryset.delete()
 
+        from shoppinglist.services import ShoppingListService
+
+        deleted_week = ShoppingListService.delete_week_shopping_data(
+            user=user,
+            plan=meal_plan,
+        )
+        deleted_day_count = ShoppingListService.delete_all_day_shopping_data_by_plan(
+            user=user,
+            plan=meal_plan,
+        )
+
         return {
             "success": True,
             "message": "Xóa thực đơn tuần thành công",
@@ -301,10 +361,13 @@ class MealPlanService:
                 "start_date": week_start,
                 "end_date": week_end,
                 "deleted_count": deleted_count,
+                "deleted_week_shopping": deleted_week,
+                "deleted_day_shopping_count": deleted_day_count,
             },
         }
 
     @staticmethod
+    @transaction.atomic
     def clear_day_plan(user, target_date):
         week_start, week_end = MealPlanService.get_week_range(target_date)
 
@@ -334,6 +397,18 @@ class MealPlanService:
         deleted_count = queryset.count()
         queryset.delete()
 
+        from shoppinglist.services import ShoppingListService
+
+        deleted_day = ShoppingListService.delete_day_shopping_data(
+            user=user,
+            plan=meal_plan,
+            target_date=target_date,
+        )
+        deleted_week = ShoppingListService.delete_week_shopping_data(
+            user=user,
+            plan=meal_plan,
+        )
+
         return {
             "success": True,
             "message": "Xóa thực đơn ngày thành công",
@@ -343,6 +418,8 @@ class MealPlanService:
                 "start_date": week_start,
                 "end_date": week_end,
                 "deleted_count": deleted_count,
+                "deleted_day_shopping": deleted_day,
+                "deleted_week_shopping": deleted_week,
             },
         }
 

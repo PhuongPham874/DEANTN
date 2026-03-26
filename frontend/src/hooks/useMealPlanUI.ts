@@ -761,56 +761,89 @@ export function useMealPlanUI() {
     loadWeek,
   ]);
 
-  const createShoppingWeek = useCallback(async () => {
+  const createShoppingWeek = useCallback(() => {
     if (!weekData?.start_date || creatingWeekShopping) return;
 
-    try {
-      setCreatingWeekShopping(true);
+    Alert.alert(
+      "Xác nhận tạo danh sách mua sắm",
+      `Tạo danh sách mua sắm từ thực đơn tuần bắt đầu ${weekData.start_date} - ${weekData.end_date}?`,
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Đồng ý",
+          onPress: async () => {
+            try {
+              setCreatingWeekShopping(true);
 
-      const response = await generateWeekShoppingList(weekData.start_date);
+              const response = await generateWeekShoppingList(weekData.start_date);
 
-      Alert.alert(
-        "Thành công",
-        response.message || "Đã tạo danh sách mua sắm tuần"
-      );
+              Alert.alert(
+                "Thành công",
+                response.message || "Đã tạo danh sách mua sắm tuần"
+              );
 
-      router.push("/shopping");
-    } catch (error: any) {
-      Alert.alert(
-        "Lỗi",
-        error?.message || "Không thể tạo danh sách mua sắm tuần"
-      );
-    } finally {
-      setCreatingWeekShopping(false);
-    }
+              router.push("/shopping");
+            } catch (error: any) {
+              Alert.alert(
+                "Lỗi",
+                error?.message || "Không thể tạo danh sách mua sắm tuần"
+              );
+            } finally {
+              setCreatingWeekShopping(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   }, [weekData?.start_date, creatingWeekShopping, router]);
 
   const createShoppingDay = useCallback(
-    async (date: string) => {
+    (date: string) => {
       if (!date || creatingDayShoppingDate === date) return;
 
-      try {
-        setCreatingDayShoppingDate(date);
+      Alert.alert(
+        "Xác nhận tạo danh sách mua sắm",
+        `Tạo danh sách mua sắm từ thực đơn ngày ${date}?`,
+        [
+          {
+            text: "Hủy",
+            style: "cancel",
+          },
+          {
+            text: "Đồng ý",
+            onPress: async () => {
+              try {
+                setCreatingDayShoppingDate(date);
 
-        const response = await generateDayShoppingList(date);
+                const response = await generateDayShoppingList(date);
 
-        Alert.alert(
-          "Thành công",
-          response.message || "Đã tạo danh sách mua sắm ngày"
-        );
+                Alert.alert(
+                  "Thành công",
+                  response.message || "Đã tạo danh sách mua sắm ngày"
+                );
 
-        router.push("/shopping");
-      } catch (error: any) {
-        Alert.alert(
-          "Lỗi",
-          error?.message || "Không thể tạo danh sách mua sắm ngày"
-        );
-      } finally {
-        setCreatingDayShoppingDate(null);
-      }
+                router.push("/shopping");
+              } catch (error: any) {
+                Alert.alert(
+                  "Lỗi",
+                  error?.message || "Không thể tạo danh sách mua sắm ngày"
+                );
+              } finally {
+                setCreatingDayShoppingDate(null);
+              }
+            },
+          },
+        ],
+        { cancelable: true }
+      );
     },
     [creatingDayShoppingDate, router]
   );
+
 
   return {
     screenLoading,

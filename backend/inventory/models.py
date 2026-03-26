@@ -19,7 +19,7 @@ class FoodInventory(models.Model):
         related_name="food_inventories",
     )
 
-    quantity = models.IntegerField(default=0)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     unit = models.CharField(max_length=20, blank=True, default="")
 
     class Meta:

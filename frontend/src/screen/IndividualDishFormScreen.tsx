@@ -244,6 +244,7 @@ export default function IndividualDishFormScreen({
           visible={ui.ingredientModalVisible}
           draft={ui.ingredientDraft}
           errors={ui.ingredientDraftErrors}
+          unitOptions={ui.ingredientUnitOptions}
           groupOptions={ui.ingredientGroupOptions}
           categoryOptions={ui.ingredientCategoryOptions}
           onChangeDraft={ui.updateIngredientDraft}

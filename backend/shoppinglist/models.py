@@ -21,7 +21,7 @@ class ShoppingList(models.Model):
     list_name = models.CharField(max_length=255)
     list_type = models.CharField(max_length=10, choices=LIST_TYPE_CHOICES)
     created_date = models.DateTimeField(auto_now_add=True)
-
+    source_date = models.DateField(null=True, blank=True)
     class Meta:
         db_table = "shopping_list"
         indexes = [

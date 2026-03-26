@@ -76,10 +76,10 @@ class ShoppingListService:
             "shopping_id": shopping_list.shopping_id,
             "list_name": shopping_list.list_name,
             "list_type": shopping_list.list_type,
+            "source_date": shopping_list.source_date,
             "created_date": shopping_list.created_date,
             "item_count": shopping_list.items.count(),
         }
-
     @staticmethod
     def _build_shopping_item_detail(item, inventory_quantity=0):
         return {
@@ -129,6 +129,7 @@ class ShoppingListService:
             "shopping_id": shopping_list.shopping_id,
             "list_name": shopping_list.list_name,
             "list_type": shopping_list.list_type,
+            "source_date": shopping_list.source_date,
             "created_date": shopping_list.created_date,
             "plan_id": first_item.plan_id if first_item else None,
             "pending_count": len(pending_items),
@@ -192,7 +193,10 @@ class ShoppingListService:
                 "data": None,
             }
 
-        meal_details = ShoppingListService._get_meal_details_for_week(user=user, plan=plan)
+        meal_details = ShoppingListService._get_meal_details_for_week(
+            user=user,
+            plan=plan,
+        )
         if not meal_details.exists():
             return {
                 "success": False,
@@ -200,7 +204,9 @@ class ShoppingListService:
                 "data": None,
             }
 
-        aggregated_items = ShoppingListService._aggregate_ingredients_from_meal_details(meal_details)
+        aggregated_items = ShoppingListService._aggregate_ingredients_from_meal_details(
+            meal_details
+        )
         if not aggregated_items:
             return {
                 "success": False,
@@ -208,10 +214,17 @@ class ShoppingListService:
                 "data": None,
             }
 
+        # Nếu đã có list tuần của plan này thì xóa đúng list tuần đó rồi tạo lại
+        ShoppingListService.delete_week_shopping_data(
+            user=user,
+            plan=plan,
+        )
+
         shopping_list = ShoppingList.objects.create(
             user=user,
             list_name=ShoppingListService.build_week_list_name(week_start, week_end),
             list_type="week",
+            source_date=None,
         )
 
         ShoppingItem.objects.bulk_create(
@@ -259,7 +272,9 @@ class ShoppingListService:
                 "data": None,
             }
 
-        aggregated_items = ShoppingListService._aggregate_ingredients_from_meal_details(meal_details)
+        aggregated_items = ShoppingListService._aggregate_ingredients_from_meal_details(
+            meal_details
+        )
         if not aggregated_items:
             return {
                 "success": False,
@@ -267,10 +282,18 @@ class ShoppingListService:
                 "data": None,
             }
 
+        # Nếu ngày này đã có shopping list thì xóa đúng list của ngày đó rồi tạo lại
+        ShoppingListService.delete_day_shopping_data(
+            user=user,
+            plan=plan,
+            target_date=target_date,
+        )
+
         shopping_list = ShoppingList.objects.create(
             user=user,
             list_name=ShoppingListService.build_day_list_name(target_date),
             list_type="day",
+            source_date=target_date,
         )
 
         ShoppingItem.objects.bulk_create(
@@ -555,3 +578,84 @@ class ShoppingListService:
             quantity_map[key] = row["quantity"] or 0
 
         return quantity_map
+    
+    @staticmethod
+    def _get_day_shopping_list_by_plan_and_date(user, plan, target_date):
+        return ShoppingList.objects.filter(
+            user=user,
+            list_type="day",
+            source_date=target_date,
+            items__plan=plan,
+        ).distinct().first()
+
+    @staticmethod
+    def _get_week_shopping_list_by_plan(user, plan):
+        return ShoppingList.objects.filter(
+            user=user,
+            list_type="week",
+            items__plan=plan,
+        ).distinct().first()
+
+    @staticmethod
+    def has_day_shopping_list(user, plan, target_date):
+        return ShoppingListService._get_day_shopping_list_by_plan_and_date(
+            user=user,
+            plan=plan,
+            target_date=target_date,
+        ) is not None
+
+    @staticmethod
+    def has_week_shopping_list(user, plan):
+        return ShoppingListService._get_week_shopping_list_by_plan(
+            user=user,
+            plan=plan,
+        ) is not None
+
+    @staticmethod
+    @transaction.atomic
+    def delete_day_shopping_data(user, plan, target_date):
+        shopping_list = ShoppingListService._get_day_shopping_list_by_plan_and_date(
+            user=user,
+            plan=plan,
+            target_date=target_date,
+        )
+        if not shopping_list:
+            return False
+
+        shopping_list.items.filter(plan=plan).delete()
+        shopping_list.delete()
+        return True
+
+    @staticmethod
+    @transaction.atomic
+    def delete_week_shopping_data(user, plan):
+        shopping_list = ShoppingListService._get_week_shopping_list_by_plan(
+            user=user,
+            plan=plan,
+        )
+        if not shopping_list:
+            return False
+
+        shopping_list.items.filter(plan=plan).delete()
+        shopping_list.delete()
+        return True
+
+    @staticmethod
+    @transaction.atomic
+    def delete_all_day_shopping_data_by_plan(user, plan):
+        shopping_lists = ShoppingList.objects.filter(
+            user=user,
+            list_type="day",
+            items__plan=plan,
+        ).distinct()
+
+        if not shopping_lists.exists():
+            return 0
+
+        deleted_count = shopping_lists.count()
+
+        for shopping_list in shopping_lists:
+            shopping_list.items.filter(plan=plan).delete()
+            shopping_list.delete()
+
+        return deleted_count

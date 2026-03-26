@@ -27,28 +27,30 @@ type RowItem =
 
 export default function ShoppingListDetailScreen() {
   const {
-    detail,
-    loading,
-    error,
-    pendingItems,
-    boughtItems,
-    submittingItemId,
-    deletingItemId,
-    modalVisible,
-    draft,
-    draftErrors,
-    groupOptions,
-    categoryOptions,
-    onBack,
-    reload,
-    onToggleStatus,
-    onDeleteItem,
-    openCreateModal,
-    closeModal,
-    onChangeDraft,
-    onSaveDraft,
-  } = useShoppingListDetailUI();
-
+  detail,
+  loading,
+  error,
+  pendingItems,
+  boughtItems,
+  submittingItemId,
+  deletingItemId,
+  modalVisible,
+  draft,
+  draftErrors,
+  unitOptions,
+  groupOptions,
+  categoryOptions,
+  onBack,
+  reload,
+  onToggleStatus,
+  onDeleteItem,
+  openCreateModal,
+  closeModal,
+  onChangeDraft,
+  onSaveDraft,
+  addingToInventory,
+  onAddBoughtItemsToInventory,
+} = useShoppingListDetailUI();
   const data: RowItem[] = React.useMemo(() => {
     const rows: RowItem[] = [
       {
@@ -109,9 +111,20 @@ export default function ShoppingListDetailScreen() {
           </Text>
 
           {item.showInventory ? (
-            <TouchableOpacity style={styles.inventoryBtn} activeOpacity={0.85}>
-              <Feather name="archive" size={14} color="#FFF" />
-              <Text style={styles.inventoryBtnText}>Thêm vào kho</Text>
+            <TouchableOpacity
+              style={styles.inventoryBtn}
+              activeOpacity={0.85}
+              onPress={onAddBoughtItemsToInventory}
+              disabled={addingToInventory}
+            >
+              {addingToInventory ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <>
+                  <Feather name="archive" size={14} color="#FFF" />
+                  <Text style={styles.inventoryBtnText}>Thêm vào kho</Text>
+                </>
+              )}
             </TouchableOpacity>
           ) : null}
         </View>
@@ -193,6 +206,7 @@ export default function ShoppingListDetailScreen() {
         visible={modalVisible}
         draft={draft}
         errors={draftErrors}
+        unitOptions={unitOptions}
         groupOptions={groupOptions}
         categoryOptions={categoryOptions}
         onChangeDraft={onChangeDraft}
@@ -231,7 +245,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "700",
     color: "#5D9722",
     letterSpacing: 0.3,

@@ -13,7 +13,12 @@ class IngredientFormSerializer(serializers.Serializer):
         choices=Ingredient.CATEGORY_CHOICES,
         required=True,
     )
-    quantity = serializers.IntegerField(required=True, min_value=1)
+    quantity = serializers.DecimalField(
+        required=True,
+        min_value=1,
+        max_digits=10,
+        decimal_places=2,
+    )
     unit = serializers.CharField(required=True, allow_blank=False)
 
     def validate_ingredient_name(self, value):
@@ -70,7 +75,7 @@ class FoodInventoryDetailSerializer(serializers.Serializer):
 
     def validate_food_inventory_id(self, value):
         if value <= 0:
-            raise serializers.ValidationError("Nguyên liệu không hợp lệ")
+            raise serializers.ValidationError("Thực phẩm không hợp lệ")
         return value
 
 
@@ -83,7 +88,7 @@ class FoodInventoryUpdateSerializer(IngredientFormSerializer):
 
     def validate_food_inventory_id(self, value):
         if value <= 0:
-            raise serializers.ValidationError("Nguyên liệu không hợp lệ")
+            raise serializers.ValidationError("Thực phẩm không hợp lệ")
         return value
 
 
@@ -92,7 +97,7 @@ class FoodInventoryDeleteSerializer(serializers.Serializer):
 
     def validate_food_inventory_id(self, value):
         if value <= 0:
-            raise serializers.ValidationError("Nguyên liệu không hợp lệ")
+            raise serializers.ValidationError("Thực phẩm không hợp lệ")
         return value
 
 

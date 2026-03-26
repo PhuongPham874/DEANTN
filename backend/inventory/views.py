@@ -16,7 +16,7 @@ from .services import FoodInventoryService
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def food_inventory_view(request):
+def food_inventory_list_view(request):
     serializer = FoodInventoryQuerySerializer(data=request.query_params)
     serializer.is_valid(raise_exception=True)
 
@@ -28,7 +28,7 @@ def food_inventory_view(request):
 
     return Response(
         {
-            "message": "Lấy danh sách thực phẩm thành công",
+            "message": "Lấy danh sách nguyên liệu trong kho thành công",
             "data": data,
         },
         status=status.HTTP_200_OK,
@@ -48,12 +48,18 @@ def food_inventory_detail_view(request):
 
     if not result["success"]:
         return Response(
-            {"message": result["message"], "data": None},
+            {
+                "message": result["message"],
+                "data": None,
+            },
             status=status.HTTP_404_NOT_FOUND,
         )
 
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_200_OK,
     )
 
@@ -69,8 +75,20 @@ def food_inventory_create_view(request):
         validated_data=serializer.validated_data,
     )
 
+    if not result["success"]:
+        return Response(
+            {
+                "message": result["message"],
+                "data": None,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_201_CREATED,
     )
 
@@ -88,12 +106,18 @@ def food_inventory_update_view(request):
 
     if not result["success"]:
         return Response(
-            {"message": result["message"], "data": None},
-            status=status.HTTP_404_NOT_FOUND,
+            {
+                "message": result["message"],
+                "data": None,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_200_OK,
     )
 
@@ -111,12 +135,18 @@ def food_inventory_delete_view(request):
 
     if not result["success"]:
         return Response(
-            {"message": result["message"], "data": None},
+            {
+                "message": result["message"],
+                "data": None,
+            },
             status=status.HTTP_404_NOT_FOUND,
         )
 
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_200_OK,
     )
 
@@ -134,11 +164,17 @@ def add_bought_items_to_inventory_view(request):
 
     if not result["success"]:
         return Response(
-            {"message": result["message"], "data": None},
+            {
+                "message": result["message"],
+                "data": None,
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_200_OK,
     )

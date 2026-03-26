@@ -10,6 +10,7 @@ import {
   ShoppingListDetail,
   toggleShoppingItemStatus,
 } from "@/src/api/shoppingListApi";
+import { addBoughtItemsToInventory } from "@/src/api/foodInventoryApi";
 
 type DraftState = {
   ingredient_name: string;
@@ -71,6 +72,25 @@ export function useShoppingListDetailUI() {
   const [draft, setDraft] = useState<DraftState>(createInitialDraft());
   const [draftErrors, setDraftErrors] = useState<DraftErrors>({});
   const [savingDraft, setSavingDraft] = useState(false);
+
+  const [addingToInventory, setAddingToInventory] = useState(false);
+
+  const unitOptions: OptionItem[] = [
+    { label: "Chọn đơn vị", value: "" },
+    { label: "g", value: "g" },
+    { label: "kg", value: "kg" },
+    { label: "ml", value: "ml" },
+    { label: "l", value: "l" },
+    { label: "quả", value: "quả" },
+    { label: "củ", value: "củ" },
+    { label: "gói", value: "gói" },
+    { label: "chai", value: "chai" },
+    { label: "lon", value: "lon" },
+    { label: "bịch", value: "bịch" },
+    { label: "hộp", value: "hộp" },
+    { label: "hũ", value: "hũ" },
+    { label: "lọ", value: "lọ" },
+  ];
 
   const fetchDetail = useCallback(
     async (showLoading = true) => {
@@ -204,7 +224,7 @@ export function useShoppingListDetailUI() {
 
   const onDeleteItem = useCallback(
     (itemId: number) => {
-      Alert.alert("Xóa nguyên liệu", "Bạn có chắc muốn xóa nguyên liệu này?", [
+      Alert.alert("Xác nhận xóa nguyên liệu", "Bạn có chắc muốn xóa nguyên liệu này?", [
         { text: "Hủy", style: "cancel" },
         {
           text: "Xóa",
@@ -225,38 +245,74 @@ export function useShoppingListDetailUI() {
     },
     [fetchDetail]
   );
+  const onAddBoughtItemsToInventory = useCallback(() => {
+  if (!detail) return;
+
+  Alert.alert(
+    "Xác nhận",
+    "Bạn có muốn thêm các nguyên liệu đã mua vào kho không?",
+    [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Đồng ý",
+        onPress: async () => {
+          try {
+            setAddingToInventory(true);
+
+            const response = await addBoughtItemsToInventory(detail.shopping_id);
+
+            Alert.alert(
+              "Thông báo",
+              response.message || "Đã thêm nguyên liệu vào kho thành công"
+            );
+
+            await fetchDetail(false);
+          } catch (err: any) {
+            Alert.alert("Thông báo", normalizeError(err));
+          } finally {
+            setAddingToInventory(false);
+          }
+        },
+      },
+    ]
+  );
+}, [detail, fetchDetail]);
 
   const pendingItems = useMemo(() => detail?.pending_items ?? [], [detail]);
   const boughtItems = useMemo(() => detail?.bought_items ?? [], [detail]);
 
-  return {
-    shoppingId,
-    detail,
-    loading,
-    error,
+return {
+  shoppingId,
+  detail,
+  loading,
+  error,
 
-    pendingItems,
-    boughtItems,
+  pendingItems,
+  boughtItems,
 
-    submittingItemId,
-    deletingItemId,
+  submittingItemId,
+  deletingItemId,
 
-    modalVisible,
-    draft,
-    draftErrors,
-    savingDraft,
-    groupOptions,
-    categoryOptions,
+  modalVisible,
+  draft,
+  draftErrors,
+  savingDraft,
+  unitOptions,
+  groupOptions,
+  categoryOptions,
 
-    onBack,
-    reload: fetchDetail,
+  onBack,
+  reload: fetchDetail,
 
-    onToggleStatus,
-    onDeleteItem,
+  onToggleStatus,
+  onDeleteItem,
 
-    openCreateModal,
-    closeModal,
-    onChangeDraft,
-    onSaveDraft,
-  };
+  openCreateModal,
+  closeModal,
+  onChangeDraft,
+  onSaveDraft,
+
+  addingToInventory,
+  onAddBoughtItemsToInventory,
+};
 }

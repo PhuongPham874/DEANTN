@@ -91,6 +91,19 @@ const DEFAULT_INGREDIENT_DRAFT: IngredientDraft = {
   group_name: "khác",
   category: "thực phẩm",
 };
+const ingredientUnitOptions = [
+  { label: "Chọn đơn vị", value: "" },
+  { label: "g", value: "g" },
+  { label: "kg", value: "kg" },
+  { label: "ml", value: "ml" },
+  { label: "l", value: "l" },
+  { label: "quả", value: "quả" },
+  { label: "củ", value: "củ" },
+  { label: "tép", value: "tép" },
+  { label: "bó", value: "bó" },
+  { label: "muỗng cà phê", value: "muỗng cà phê" },
+  { label: "muỗng canh", value: "muỗng canh" },
+];
 
 function normalizeIngredient(
   item: Partial<IngredientFormItem>
@@ -568,6 +581,7 @@ export function useIndividualDishFormUI({
     ingredientModalVisible,
     ingredientDraft,
     ingredientDraftErrors,
+    ingredientUnitOptions,
 
     methodModalVisible,
     methodDraft,

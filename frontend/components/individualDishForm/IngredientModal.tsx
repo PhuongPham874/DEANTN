@@ -35,6 +35,7 @@ type Props = {
     group_name?: string;
     category?: string;
   };
+  unitOptions: OptionItem[];
   groupOptions: OptionItem[];
   categoryOptions: OptionItem[];
   onChangeDraft: (
@@ -49,20 +50,6 @@ type Props = {
   onClose: () => void;
   onSave: () => void;
 };
-
-const unitOptions: OptionItem[] = [
-  { label: "Chọn đơn vị", value: "" },
-  { label: "g", value: "g" },
-  { label: "kg", value: "kg" },
-  { label: "ml", value: "ml" },
-  { label: "l", value: "l" },
-  { label: "quả", value: "quả" },
-  { label: "củ", value: "củ" },
-  { label: "tép", value: "tép" },
-  { label: "bó", value: "bó" },
-  { label: "muỗng cà phê", value: "muỗng cà phê" },
-  { label: "muỗng canh", value: "muỗng canh" },
-];
 
 function SelectField({
   label,
@@ -112,6 +99,7 @@ export default function IngredientModal({
   visible,
   draft,
   errors,
+  unitOptions,
   groupOptions,
   categoryOptions,
   onChangeDraft,

@@ -53,7 +53,7 @@ function getTabMeta(routeName: string, focused: boolean) {
         ),
       };
 
-    case "ingredient":
+    case "inventory":
       return {
         label: "Thực phẩm",
         icon: (
