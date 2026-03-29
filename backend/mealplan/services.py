@@ -456,13 +456,23 @@ class MealPlanService:
         return weeks
 
     @staticmethod
-    def get_copy_week_options(source_start_date, month_date=None):
+    def get_copy_week_options(user, source_start_date, month_date=None):
         month_date = month_date or source_start_date
         source_end_date = source_start_date + timedelta(days=6)
 
         weeks = MealPlanService.get_weeks_of_month(month_date)
         month_start = MealPlanService.get_month_start(month_date)
         month_end = MealPlanService.get_month_end(month_date)
+
+        week_options = []
+        for week in weeks:
+            week_options.append(
+                {
+                    "start_date": week["start_date"],
+                    "end_date": week["end_date"],
+                    "has_data": MealPlanService.has_week_plan_data(user, week["start_date"]),
+                }
+            )
 
         return {
             "source_week": {
@@ -475,7 +485,7 @@ class MealPlanService:
             },
             "previous_month_date": month_start - timedelta(days=1),
             "next_month_date": month_end + timedelta(days=1),
-            "weeks": weeks,
+            "weeks": week_options,
         }
 
     @staticmethod
@@ -509,6 +519,23 @@ class MealPlanService:
             created_count += 1
 
         return created_count
+    
+    @staticmethod
+    def has_week_plan_data(user, week_start):
+        week_end = week_start + timedelta(days=6)
+
+        meal_plan = MealPlan.objects.filter(
+            start_date=week_start,
+            end_date=week_end,
+        ).first()
+
+        if not meal_plan:
+            return False
+
+        return MealPlanDetail.objects.filter(
+            user=user,
+            plan=meal_plan,
+        ).exists()
 
     @staticmethod
     @transaction.atomic
@@ -547,6 +574,11 @@ class MealPlanService:
             target_end_date,
         )
 
+        MealPlanDetail.objects.filter(
+            user=user,
+            plan=target_plan,
+        ).delete()
+
         day_offset = (target_start_date - source_start_date).days
 
         created_count = MealPlanService.clone_meal_details(
@@ -569,7 +601,25 @@ class MealPlanService:
         }
 
     @staticmethod
-    def get_copy_day_options(source_date, week_date=None): 
+    def has_day_plan_data(user, target_date):
+        week_start, week_end = MealPlanService.get_week_range(target_date)
+
+        meal_plan = MealPlan.objects.filter(
+            start_date=week_start,
+            end_date=week_end,
+        ).first()
+
+        if not meal_plan:
+            return False
+
+        return MealPlanDetail.objects.filter(
+            user=user,
+            plan=meal_plan,
+            date=target_date,
+        ).exists()
+
+    @staticmethod
+    def get_copy_day_options(user, source_date, week_date=None): 
         week_date = week_date or source_date
         week_start, week_end = MealPlanService.get_week_range(week_date)
 
@@ -582,6 +632,7 @@ class MealPlanService:
                     "day": current.day,
                     "month": current.month,
                     "weekday_label": MealPlanService.WEEKDAY_LABELS[current.weekday()],
+                    "has_data": MealPlanService.has_day_plan_data(user, current),
                 }
             )
             current += timedelta(days=1)
@@ -634,6 +685,12 @@ class MealPlanService:
             target_week_start,
             target_week_end,
         )
+
+        MealPlanDetail.objects.filter(
+            user=user,
+            plan=target_plan,
+            date=target_date,
+        ).delete()
 
         created_count = MealPlanService.clone_meal_details(
             user=user,

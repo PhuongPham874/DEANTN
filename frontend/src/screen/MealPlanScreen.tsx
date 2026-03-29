@@ -738,4 +738,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     paddingVertical: 20,
   },
+  copyTargetCardDisabled: {
+    backgroundColor: "#ECECEC",
+    borderWidth: 1,
+    borderColor: "#D6D6D6",
+  },
+
+  copyTargetTextDisabled: {
+    color: "#9A9A9A",
+  },
+
+  copyDisabledHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#9A9A9A",
+    fontWeight: "600",
+  },
 });

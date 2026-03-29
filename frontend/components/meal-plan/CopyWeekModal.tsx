@@ -25,11 +25,13 @@ function CopyWeekCard({
   styles,
   item,
   selected,
+  isDisabled,
   onPress,
 }: {
   styles: any;
   item: CopyWeekOptionItem;
   selected: boolean;
+  isDisabled: boolean;
   onPress: () => void;
 }) {
   return (
@@ -37,14 +39,33 @@ function CopyWeekCard({
       style={[
         styles.copyTargetCard,
         selected ? styles.copyTargetCardSelected : null,
+        isDisabled ? styles.copyTargetCardDisabled : null,
       ]}
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={isDisabled ? 1 : 0.85}
+      disabled={isDisabled}
     >
-      <Text style={styles.copyTargetTitle}>TUẦN</Text>
-      <Text style={styles.copyTargetValue}>
+      <Text
+        style={[
+          styles.copyTargetTitle,
+          isDisabled ? styles.copyTargetTextDisabled : null,
+        ]}
+      >
+        TUẦN
+      </Text>
+
+      <Text
+        style={[
+          styles.copyTargetValue,
+          isDisabled ? styles.copyTargetTextDisabled : null,
+        ]}
+      >
         {formatWeekLabel(item.start_date, item.end_date)}
       </Text>
+
+      {isDisabled ? (
+        <Text style={styles.copyDisabledHint}>Tuần nguồn</Text>
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -119,15 +140,23 @@ export default function CopyWeekModal({
           {generalError ? <Text style={styles.fieldErrorText}>{generalError}</Text> : null}
 
           <View style={styles.copyWeekGrid}>
-            {weeks.map((item) => (
-              <CopyWeekCard
-                key={item.start_date}
-                styles={styles}
-                item={item}
-                selected={selectedTargetStartDate === item.start_date}
-                onPress={() => onSelectWeek(item.start_date)}
-              />
-            ))}
+            {weeks.map((item) => {
+              const isDisabled = item.start_date === sourceStartDate;
+
+              return (
+                <CopyWeekCard
+                  key={item.start_date}
+                  styles={styles}
+                  item={item}
+                  selected={selectedTargetStartDate === item.start_date}
+                  isDisabled={isDisabled}
+                  onPress={() => {
+                    if (isDisabled) return;
+                    onSelectWeek(item.start_date);
+                  }}
+                />
+              );
+            })}
           </View>
 
           {targetError ? <Text style={styles.fieldErrorText}>{targetError}</Text> : null}

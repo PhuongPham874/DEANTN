@@ -582,43 +582,70 @@ export function useMealPlanUI() {
       return;
     }
 
-    try {
-      setCopyWeekState((prev) => ({
-        ...prev,
-        loading: true,
-        generalError: "",
-        fieldErrors: {},
-      }));
+    const selectedWeek = copyWeekState.weeks.find(
+      (item) => item.start_date === copyWeekState.selectedTargetStartDate
+    );
 
-      await copyMealPlanWeekApi({
-        source_start_date: copyWeekState.sourceStartDate,
-        target_start_date: copyWeekState.selectedTargetStartDate,
-      });
+    const doSubmitCopyWeek = async () => {
+      try {
+        setCopyWeekState((prev) => ({
+          ...prev,
+          loading: true,
+          generalError: "",
+          fieldErrors: {},
+        }));
 
-      closeCopyWeekModal();
-      await loadWeek(copyWeekState.selectedTargetStartDate);
-      showMessage("Sao chép thực đơn tuần thành công");
-    } catch (error) {
-      if (error instanceof ApiFormError) {
+        await copyMealPlanWeekApi({
+          source_start_date: copyWeekState.sourceStartDate!,
+          target_start_date: copyWeekState.selectedTargetStartDate!,
+        });
+
+        closeCopyWeekModal();
+        await loadWeek(copyWeekState.selectedTargetStartDate!);
+        showMessage("Sao chép thực đơn tuần thành công");
+      } catch (error) {
+        if (error instanceof ApiFormError) {
+          setCopyWeekState((prev) => ({
+            ...prev,
+            loading: false,
+            generalError: error.message,
+            fieldErrors: mapCopyWeekFieldErrors(error.fieldErrors),
+          }));
+          return;
+        }
+
         setCopyWeekState((prev) => ({
           ...prev,
           loading: false,
-          generalError: error.message,
-          fieldErrors: mapCopyWeekFieldErrors(error.fieldErrors),
+          generalError:
+            error instanceof Error ? error.message : "Không thể sao chép thực đơn tuần",
         }));
-        return;
       }
+    };
 
-      setCopyWeekState((prev) => ({
-        ...prev,
-        loading: false,
-        generalError:
-          error instanceof Error ? error.message : "Không thể sao chép thực đơn tuần",
-      }));
+    if (selectedWeek?.has_data) {
+      Alert.alert(
+        "Xác nhận ghi đè",
+        "Khoảng thời gian này đã có thực đơn, bạn có muốn ghi đè không?",
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Đồng ý",
+            style: "destructive",
+            onPress: () => {
+              void doSubmitCopyWeek();
+            },
+          },
+        ]
+      );
+      return;
     }
+
+    await doSubmitCopyWeek();
   }, [
     copyWeekState.selectedTargetStartDate,
     copyWeekState.sourceStartDate,
+    copyWeekState.weeks,
     closeCopyWeekModal,
     loadWeek,
   ]);
@@ -720,43 +747,72 @@ export function useMealPlanUI() {
       return;
     }
 
-    try {
-      setCopyDayState((prev) => ({
-        ...prev,
-        loading: true,
-        generalError: "",
-        fieldErrors: {},
-      }));
+    const targetDate = copyDayState.selectedTargetDate;
 
-      await copyMealPlanDayApi({
-        source_date: copyDayState.sourceDate,
-        target_date: copyDayState.selectedTargetDate,
-      });
+    const selectedDay = copyDayState.days.find(
+      (item) => item.date === targetDate
+    );
 
-      closeCopyDayModal();
-      await loadWeek(copyDayState.selectedTargetDate);
-      showMessage("Sao chép thực đơn ngày thành công");
-    } catch (error) {
-      if (error instanceof ApiFormError) {
+    const doSubmitCopyDay = async () => {
+      try {
+        setCopyDayState((prev) => ({
+          ...prev,
+          loading: true,
+          generalError: "",
+          fieldErrors: {},
+        }));
+
+        await copyMealPlanDayApi({
+          source_date: copyDayState.sourceDate!,
+          target_date: targetDate,
+        });
+
+        closeCopyDayModal();
+        await loadWeek(targetDate);
+        showMessage("Sao chép thực đơn ngày thành công");
+      } catch (error) {
+        if (error instanceof ApiFormError) {
+          setCopyDayState((prev) => ({
+            ...prev,
+            loading: false,
+            generalError: error.message,
+            fieldErrors: mapCopyDayFieldErrors(error.fieldErrors),
+          }));
+          return;
+        }
+
         setCopyDayState((prev) => ({
           ...prev,
           loading: false,
-          generalError: error.message,
-          fieldErrors: mapCopyDayFieldErrors(error.fieldErrors),
+          generalError:
+            error instanceof Error ? error.message : "Không thể sao chép thực đơn ngày",
         }));
-        return;
       }
+    };
 
-      setCopyDayState((prev) => ({
-        ...prev,
-        loading: false,
-        generalError:
-          error instanceof Error ? error.message : "Không thể sao chép thực đơn ngày",
-      }));
+    if (selectedDay?.has_data) {
+      Alert.alert(
+        "Xác nhận ghi đè",
+        "Khoảng thời gian này đã có thực đơn, bạn có muốn ghi đè không?",
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Đồng ý",
+            style: "destructive",
+            onPress: () => {
+              void doSubmitCopyDay();
+            },
+          },
+        ]
+      );
+      return;
     }
+
+    await doSubmitCopyDay();
   }, [
     copyDayState.selectedTargetDate,
     copyDayState.sourceDate,
+    copyDayState.days,
     closeCopyDayModal,
     loadWeek,
   ]);

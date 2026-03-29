@@ -20,22 +20,56 @@ function CopyDayCard({
   styles,
   item,
   selected,
+  isDisabled,
   onPress,
 }: {
   styles: any;
   item: CopyDayOptionItem;
   selected: boolean;
+  isDisabled: boolean;
   onPress: () => void;
 }) {
   return (
     <TouchableOpacity
-      style={[styles.copyDayCard, selected ? styles.copyTargetCardSelected : null]}
+      style={[
+        styles.copyDayCard,
+        selected ? styles.copyTargetCardSelected : null,
+        isDisabled ? styles.copyTargetCardDisabled : null,
+      ]}
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={isDisabled ? 1 : 0.85}
+      disabled={isDisabled}
     >
-      <Text style={styles.copyDayMonth}>THÁNG {item.month}</Text>
-      <Text style={styles.copyDayNumber}>{item.day}</Text>
-      <Text style={styles.copyDayWeekday}>{item.weekday_label}</Text>
+      <Text
+        style={[
+          styles.copyDayMonth,
+          isDisabled ? styles.copyTargetTextDisabled : null,
+        ]}
+      >
+        THÁNG {item.month}
+      </Text>
+
+      <Text
+        style={[
+          styles.copyDayNumber,
+          isDisabled ? styles.copyTargetTextDisabled : null,
+        ]}
+      >
+        {item.day}
+      </Text>
+
+      <Text
+        style={[
+          styles.copyDayWeekday,
+          isDisabled ? styles.copyTargetTextDisabled : null,
+        ]}
+      >
+        {item.weekday_label}
+      </Text>
+
+      {isDisabled ? (
+        <Text style={styles.copyDisabledHint}>Ngày nguồn</Text>
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -56,6 +90,7 @@ type Props = {
   onSelectDate: (date: string) => void;
   onSubmit: () => void;
 };
+
 
 export default function CopyDayModal({
   styles,
@@ -106,15 +141,23 @@ export default function CopyDayModal({
           {generalError ? <Text style={styles.fieldErrorText}>{generalError}</Text> : null}
 
           <View style={styles.copyDayGrid}>
-            {days.map((item) => (
-              <CopyDayCard
-                key={item.date}
-                styles={styles}
-                item={item}
-                selected={selectedTargetDate === item.date}
-                onPress={() => onSelectDate(item.date)}
-              />
-            ))}
+            {days.map((item) => {
+              const isDisabled = item.date === sourceDate;
+
+              return (
+                <CopyDayCard
+                  key={item.date}
+                  styles={styles}
+                  item={item}
+                  selected={selectedTargetDate === item.date}
+                  isDisabled={isDisabled}
+                  onPress={() => {
+                    if (isDisabled) return;
+                    onSelectDate(item.date);
+                  }}
+                />
+              );
+            })}
           </View>
 
           {targetError ? <Text style={styles.fieldErrorText}>{targetError}</Text> : null}

@@ -112,6 +112,7 @@ export type ClearWeekResponse = {
 export type CopyWeekOptionItem = {
   start_date: string;
   end_date: string;
+  has_data: boolean;
 };
 
 export type CopyWeekOptionsResponse = {
@@ -152,6 +153,7 @@ export type CopyDayOptionItem = {
   day: number;
   month: number;
   weekday_label: string;
+  has_data: boolean;
 };
 
 export type CopyDayOptionsResponse = {

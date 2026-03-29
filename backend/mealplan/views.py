@@ -165,6 +165,7 @@ def meal_plan_copy_week_options_view(request):
     serializer.is_valid(raise_exception=True)
 
     data = MealPlanService.get_copy_week_options(
+        user=request.user,
         source_start_date=serializer.validated_data["source_start_date"],
         month_date=serializer.validated_data.get("month_date"),
     )
@@ -215,6 +216,7 @@ def meal_plan_copy_day_options_view(request):
     serializer.is_valid(raise_exception=True)
 
     data = MealPlanService.get_copy_day_options(
+        user=request.user,
         source_date=serializer.validated_data["source_date"],
         week_date=serializer.validated_data.get("week_date"),
     )
