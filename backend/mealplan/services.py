@@ -579,6 +579,17 @@ class MealPlanService:
             plan=target_plan,
         ).delete()
 
+        from shoppinglist.services import ShoppingListService
+
+        ShoppingListService.delete_week_shopping_data(
+            user=user,
+            plan=target_plan,
+        )
+        ShoppingListService.delete_all_day_shopping_data_by_plan(
+            user=user,
+            plan=target_plan,
+        )
+
         day_offset = (target_start_date - source_start_date).days
 
         created_count = MealPlanService.clone_meal_details(
@@ -691,6 +702,18 @@ class MealPlanService:
             plan=target_plan,
             date=target_date,
         ).delete()
+
+        from shoppinglist.services import ShoppingListService
+
+        ShoppingListService.delete_day_shopping_data(
+            user=user,
+            plan=target_plan,
+            target_date=target_date,
+        )
+        ShoppingListService.delete_week_shopping_data(
+            user=user,
+            plan=target_plan,
+        )
 
         created_count = MealPlanService.clone_meal_details(
             user=user,
