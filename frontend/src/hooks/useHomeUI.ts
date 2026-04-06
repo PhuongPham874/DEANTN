@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useFocusEffect } from "expo-router";
 import { useRouter } from "expo-router";
 import {
@@ -47,6 +47,8 @@ export function useHomeUI() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firstRenderRef = useRef(true);
+
+  const isNotFound = !loading && dishes.length === 0;
 
   const handleAuthExpired = useCallback(async () => {
     await clearAuthToken();
@@ -180,6 +182,11 @@ export function useHomeUI() {
   });
 };
 
+  const emptyMessage = useMemo(() => {
+    if (search.trim()) return "Không tìm thấy món ăn";
+    if (selectedCategory !== "all") return "Không có món ăn trong danh mục này";
+    return "Không tìm thấy món ăn phù hợp";
+  }, [search, selectedCategory]);
   return {
     username,
     categories,
@@ -199,5 +206,8 @@ export function useHomeUI() {
     onPressDish,
     refreshData,
     retryFetch,
+
+    isNotFound,
+    emptyMessage,
   };
 }

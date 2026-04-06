@@ -222,7 +222,7 @@ export function useFoodInventoryUI() {
 
       Alert.alert(
         "Thông báo",
-        response.message || "Thêm nguyên liệu vào kho thành công"
+        response.message || "Thêm nguyên liệu mới thành công"
       );
 
       setModalVisible(false);
@@ -244,13 +244,14 @@ export function useFoodInventoryUI() {
         [
           { text: "Hủy", style: "cancel" },
           {
-            text: "Xóa",
+            text: "Đồng ý",
             style: "destructive",
             onPress: async () => {
               try {
                 setDeletingItemId(item.food_inventory_id);
                 await deleteFoodInventory(item.food_inventory_id);
                 await fetchList(false);
+                Alert.alert("Thông báo", `Xóa nguyên liệu thành công`);
               } catch (err: any) {
                 Alert.alert("Thông báo", normalizeError(err));
               } finally {
@@ -274,7 +275,7 @@ export function useFoodInventoryUI() {
     if (search.trim()) {
       return "Không tìm thấy nguyên liệu phù hợp";
     }
-    return "Chưa có nguyên liệu trong kho";
+    return "Chưa có nguyên liệu nào";
   }, [search]);
 
   return {
@@ -300,7 +301,6 @@ export function useFoodInventoryUI() {
     groupOptions,
     categoryOptions,
 
-    reload: fetchList,
     onRefresh,
 
     openCreateModal,

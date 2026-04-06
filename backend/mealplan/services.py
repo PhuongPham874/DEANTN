@@ -30,7 +30,7 @@ class MealPlanService:
 
     @staticmethod
     def get_week_range(target_date): #xác định phạm vi tuần theo ngày hiện tại
-        week_start = target_date - timedelta(days=target_date.weekday()) #week_start tức là tìm ngày thứ 2 của tuần chứa target date truyền vào
+        week_start = target_date - timedelta(days=target_date.weekday()) #week_start tức là tìm ngày thứ 2 của tuần chứa target date truyền vào; trả về date (target_date lùi lại số bước cần để quay về thứ 2)
         week_end = week_start + timedelta(days=6)
         return week_start, week_end
 
@@ -106,11 +106,11 @@ class MealPlanService:
                 )
                 .select_related("dish")
                 .order_by("date", "meal_type", "plan_detail_id")
-            )
+            ) #Lấy các record dish của plan detail nếu tồn tài plan_id (tức là tuần có thực đơn rồi)
 
         detail_map = {}
         for detail in details:
-            key = (detail.date, detail.meal_type)
+            key = (detail.date, detail.meal_type) #tại dictionary map ngày bữa -> thả món ăn vào đúng bữa của ngày mà ng dùng thêm
             if key not in detail_map:
                 detail_map[key] = []
             detail_map[key].append(
@@ -127,11 +127,10 @@ class MealPlanService:
         }
 
     @staticmethod
-    def get_available_dishes(request, user, search=""):
+    def get_available_dishes(request, user, search=""): #hàm chọn món để chọn vào thực đơn
         queryset = (
             Dish.objects.filter(
                 individual_dishes__user=user,
-                is_system=False, #Lấy các món trong ds cá nhân của user
             )
             .distinct()
             .order_by("dish_id")
@@ -174,44 +173,13 @@ class MealPlanService:
         dish = (
             Dish.objects.filter(
                 dish_id=dish_id,
-                is_system=False,
                 individual_dishes__user=user,
             )
             .distinct()
             .first()
         )
-
-        if not dish:
-            return {
-                "success": False,
-                "message": "Không tìm thấy món ăn phù hợp",
-                "data": None,
-            }
-
         week_start, week_end = MealPlanService.get_week_range(target_date)
         meal_plan = MealPlanService.get_or_create_week_plan(week_start, week_end)
-
-        if target_date < meal_plan.start_date or target_date > meal_plan.end_date:
-            return {
-                "success": False,
-                "message": "Ngày của món ăn không nằm trong tuần hiển thị",
-                "data": None,
-            }
-
-        existing_detail = MealPlanDetail.objects.filter(
-            plan=meal_plan,
-            user=user,
-            date=target_date,
-            meal_type=meal_type,
-            dish=dish,
-        ).first()
-
-        if existing_detail:
-            return {
-                "success": False,
-                "message": "Món ăn đã tồn tại trong bữa này",
-                "data": None,
-            }
 
         detail = MealPlanDetail.objects.create(
             plan=meal_plan,
@@ -265,13 +233,6 @@ class MealPlanService:
             .select_related("plan", "dish")
             .first()
         )
-
-        if not detail:
-            return {
-                "success": False,
-                "message": "Không tìm thấy món ăn trong thực đơn",
-                "data": None,
-            }
 
         data = {
             "plan_detail_id": detail.plan_detail_id,

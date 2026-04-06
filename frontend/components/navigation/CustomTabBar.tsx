@@ -2,20 +2,21 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 function getTabMeta(routeName: string, focused: boolean) {
   switch (routeName) {
     case "home":
-  return {
-    label: "Trang chủ",
-    icon: (
-      <Ionicons
-        name={focused ? "home" : "home-outline"}
-        size={24}
-        color={focused ? "#669C2F" : "#707070"}
-      />
-    ),
-  };
+      return {
+        label: "Trang chủ",
+        icon: (
+          <Ionicons
+            name={focused ? "home" : "home-outline"}
+            size={24}
+            color={focused ? "#669C2F" : "#707070"}
+          />
+        ),
+      };
 
     case "favourite":
       return {
@@ -58,7 +59,7 @@ function getTabMeta(routeName: string, focused: boolean) {
         label: "Thực phẩm",
         icon: (
           <MaterialCommunityIcons
-            name={focused ? "food-apple" : "food-apple-outline"}
+            name={focused ? "fridge" : "fridge-outline"}
             size={24}
             color={focused ? "#669C2F" : "#707070"}
           />
@@ -84,6 +85,8 @@ export default function CustomTabBar({
   descriptors,
   navigation,
 }: BottomTabBarProps) {
+  const router = useRouter();
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.container}>
@@ -99,7 +102,19 @@ export default function CustomTabBar({
               canPreventDefault: true,
             });
 
-            if (!focused && !event.defaultPrevented) {
+            if (event.defaultPrevented) return;
+
+            if (route.name === "shopping") {
+              router.replace("/shopping");
+              return;
+            }
+
+            if (route.name === "favourite") {
+              router.replace("/favourite");
+              return;
+            }
+
+            if (!focused) {
               navigation.navigate(route.name, route.params);
             }
           };

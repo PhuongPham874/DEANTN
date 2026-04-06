@@ -129,7 +129,7 @@ export function useFavoriteUI() {
   const onPressDelete = (dishId: number) => {
     Alert.alert("Xóa món ăn", "Bạn có chắc muốn xóa món ăn này không?", [
       { text: "Hủy", style: "cancel" },
-      { text: "Xóa", style: "destructive", onPress: () => handleDeleteDish(dishId) },
+      { text: "Đồng ý", style: "destructive", onPress: () => handleDeleteDish(dishId) },
     ]);
   };
 
@@ -165,7 +165,7 @@ export function useFavoriteUI() {
     onPressDish: (dishId: number) => router.push(`/favourite/dish/${dishId}`),
     onPressEdit: (dishId: number) => router.push(`/favourite/update/${dishId}/edit`),
     onPressCreate: () => router.push("/favourite/create"),
-    emptyText: useMemo(() => search.trim() ? "Không tìm thấy món ăn" : "Bạn chưa có món yêu thích nào", [search]),
+    emptyText: useMemo(() => search.trim() ? "Không tìm thấy món ăn phù hợp" : "Bạn chưa có món yêu thích nào", [search]),
     reload: fetchData,
   };
 }

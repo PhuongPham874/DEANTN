@@ -2,11 +2,13 @@ import React from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMealPlanUI } from "@/src/hooks/useMealPlanUI";
 import MealPlanHeader from "@/components/meal-plan/MealPlanHeader";
 import MealPlanWeekTable from "@/components/meal-plan/MealPlanWeekTable";
@@ -14,8 +16,19 @@ import DishPickerModal from "@/components/meal-plan/DishPickerModal";
 import CopyWeekModal from "@/components/meal-plan/CopyWeekModal";
 import CopyDayModal from "@/components/meal-plan/CopyDayModal";
 import DishDetailModal from "@/components/meal-plan/DishDetailModal";
+import BotIcon from "@/assets/hugeicons_bot";
+
+const BORDER = "#CFE0D3";
+const GREEN = "#3E9300";
+const BG = "#E2EDE5";
+const CARD = "#FFFFFF";
+const RED = "#D95C5C";
+const TEXT = "#2F2F2F";
+const MUTED = "#6B7280";
 
 export default function MealPlanScreen() {
+  const insets = useSafeAreaInsets();
+
   const {
     screenLoading,
     screenRefreshing,
@@ -71,7 +84,7 @@ export default function MealPlanScreen() {
   if (screenLoading && !weekData) {
     return (
       <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#5D9625" />
+        <ActivityIndicator size="large" color={GREEN} />
       </SafeAreaView>
     );
   }
@@ -120,16 +133,26 @@ export default function MealPlanScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <FlatList
         data={[{ key: "meal-plan" }]}
         keyExtractor={(item) => item.key}
         refreshing={screenRefreshing}
         onRefresh={onRefresh}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: insets.bottom + 24 },
+        ]}
         renderItem={() => (
           <>
+            <View style={styles.topScreenHeader}>
+              <Text style={styles.topScreenTitle}>THỰC ĐƠN</Text>
+              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85}>
+                <BotIcon width={40} height={38} />
+              </TouchableOpacity>
+            </View>
+
             <MealPlanHeader
               styles={styles}
               weekTitle={weekTitle}
@@ -198,11 +221,12 @@ export default function MealPlanScreen() {
         onSubmit={submitCopyWeek}
       />
 
-    <DishDetailModal
-    visible={detailModalVisible}
-    dishId={selectedDishId}
-    onClose={closeDishDetailModal}
-    />
+      <DishDetailModal
+        visible={detailModalVisible}
+        dishId={selectedDishId}
+        onClose={closeDishDetailModal}
+      />
+
       <CopyDayModal
         styles={styles}
         visible={copyDayState.visible}
@@ -226,17 +250,11 @@ export default function MealPlanScreen() {
             },
           }))
         }
-        onSubmit={submitCopyDay}    
+        onSubmit={submitCopyDay}
       />
     </SafeAreaView>
   );
 }
-
-const BORDER = "#D8D8D8";
-const GREEN = "#5D9625";
-const BG = "#EEF3ED";
-const CARD = "#FFFFFF";
-const RED = "#D95C5C";
 
 const styles = StyleSheet.create({
   container: {
@@ -252,11 +270,30 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 32,
+  },
+
+  topScreenHeader: {
+    marginTop: 16,
+    marginBottom: 18,
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  topScreenTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: GREEN,
+    letterSpacing: 0.3,
+  },
+  chatbotButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   headerRow: {
-    marginTop: 12,
     marginBottom: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -265,8 +302,8 @@ const styles = StyleSheet.create({
   screenTitle: {
     fontSize: 25,
     fontWeight: "700",
-    color: "#669C2F",
-    letterSpacing: 0.5,
+    color: GREEN,
+    letterSpacing: 0.3,
   },
 
   weekSwitcher: {
@@ -279,18 +316,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 21,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: GREEN,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F2F6F1",
+    backgroundColor: CARD,
   },
   weekTitle: {
     flex: 1,
     textAlign: "center",
     fontSize: 18,
     fontWeight: "700",
-    color: "#3E3E3E",
+    color: TEXT,
     marginHorizontal: 12,
   },
 
@@ -304,7 +341,7 @@ const styles = StyleSheet.create({
   smallGreenButton: {
     flex: 1,
     minHeight: 38,
-    borderRadius: 6,
+    borderRadius: 8,
     backgroundColor: GREEN,
     flexDirection: "row",
     justifyContent: "center",
@@ -313,14 +350,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   smallRedButton: {
-    flex: 1.25,
+    flex: 1.15,
     minHeight: 38,
-    borderRadius: 6,
+    borderRadius: 8,
     backgroundColor: RED,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 6,
+    gap: 2,
     paddingHorizontal: 8,
   },
   smallButtonText: {
@@ -331,7 +368,7 @@ const styles = StyleSheet.create({
 
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#F8F8F8",
+    backgroundColor: CARD,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderWidth: 1,
@@ -363,7 +400,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderBottomWidth: 1,
     borderColor: BORDER,
-    backgroundColor: "#FBFBFB",
+    backgroundColor: "#F8FBF8",
     minHeight: 130,
   },
   dayCell: {
@@ -376,7 +413,7 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
   },
   monthText: {
-    color: "#6C9E35",
+    color: GREEN,
     fontSize: 10,
     fontWeight: "700",
   },
@@ -387,7 +424,7 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   weekdayText: {
-    color: "#6C9E35",
+    color: GREEN,
     fontSize: 12,
     fontWeight: "700",
     textAlign: "center",
@@ -399,7 +436,6 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: BORDER,
     justifyContent: "flex-start",
-    
   },
   mealCellList: {
     gap: 8,
@@ -409,11 +445,12 @@ const styles = StyleSheet.create({
     minHeight: 24,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: "#C9D1C5",
+    borderColor: BORDER,
     borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 2,
+    backgroundColor: CARD,
   },
   emptySlotPlus: {
     color: GREEN,
@@ -428,18 +465,20 @@ const styles = StyleSheet.create({
   assignedDishPill: {
     minHeight: 28,
     borderRadius: 8,
-    backgroundColor: "#EFF5EA",
+    backgroundColor: BG,
     justifyContent: "center",
     paddingHorizontal: 10,
     paddingVertical: 5,
-    alignSelf: 'flex-start', 
-    width: '100%',
+    alignSelf: "flex-start",
+    width: "100%",
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   assignedDishText: {
     fontSize: 12,
-    color: "#3E3E3E",
+    color: TEXT,
     fontWeight: "600",
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   assignedDishDelete: {
     position: "absolute",
@@ -458,7 +497,7 @@ const styles = StyleSheet.create({
     width: 25,
     height: 25,
     borderRadius: 6,
-    backgroundColor: "#E7EFE2",
+    backgroundColor: BG,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -470,13 +509,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   modalCardLarge: {
-    backgroundColor: "#E6EEE5",
+    backgroundColor: BG,
     borderRadius: 24,
     padding: 18,
     maxHeight: "88%",
   },
   modalCardMedium: {
-    backgroundColor: "#E6EEE5",
+    backgroundColor: BG,
     borderRadius: 24,
     padding: 18,
     maxHeight: "82%",
@@ -497,17 +536,19 @@ const styles = StyleSheet.create({
   searchBox: {
     minHeight: 52,
     borderRadius: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: CARD,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     marginBottom: 10,
     gap: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   searchInput: {
     flex: 1,
     fontSize: 18,
-    color: "#3E3E3E",
+    color: TEXT,
     paddingVertical: 10,
   },
 
@@ -529,6 +570,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   dishImage: {
     width: 78,
@@ -547,7 +590,7 @@ const styles = StyleSheet.create({
   },
   dishName: {
     fontSize: 18,
-    color: "#333333",
+    color: TEXT,
     fontWeight: "500",
     flexShrink: 1,
   },
@@ -577,16 +620,18 @@ const styles = StyleSheet.create({
   },
   dishMetaText: {
     fontSize: 14,
-    color: "#4D4D4D",
+    color: MUTED,
   },
   addDishButton: {
     minWidth: 78,
     height: 40,
     borderRadius: 8,
-    backgroundColor: "#E6EEE5",
+    backgroundColor: BG,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   addDishButtonText: {
     color: GREEN,
@@ -594,12 +639,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   addDishButtonDisabled: {
-    backgroundColor: "#E0E0E0", // xám
-    opacity: 1, // bỏ mờ đi để nhìn rõ hơn
+    backgroundColor: "#E0E0E0",
+    opacity: 1,
   },
   addDishButtonTextDisabled: {
-    color: "#333333",   // chữ đen
-    fontWeight: "400",  // không in đậm
+    color: "#333333",
+    fontWeight: "400",
   },
 
   infoBox: {
@@ -607,10 +652,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   infoLabel: {
     fontSize: 15,
-    color: "#6A6A6A",
+    color: MUTED,
     marginBottom: 8,
   },
   infoValue: {
@@ -621,7 +668,7 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontSize: 16,
-    color: "#5F5F5F",
+    color: MUTED,
     marginBottom: 10,
   },
   rangeSwitcher: {
@@ -634,7 +681,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     marginHorizontal: 8,
-    color: "#3E3E3E",
+    color: TEXT,
     fontSize: 17,
     fontWeight: "700",
   },
@@ -654,14 +701,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   copyTargetCardSelected: {
-    backgroundColor: "#D7DAD7",
-    borderWidth: 2,
-    borderColor: "#C8CDC7",
+    backgroundColor: BG,
+    borderWidth: 1.5,
+    borderColor: GREEN,
   },
   copyTargetTitle: {
-    color: "#73A13E",
+    color: GREEN,
     fontSize: 16,
     fontWeight: "800",
     marginBottom: 8,
@@ -688,9 +737,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   copyDayMonth: {
-    color: "#73A13E",
+    color: GREEN,
     fontSize: 14,
     fontWeight: "800",
   },
@@ -701,7 +752,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   copyDayWeekday: {
-    color: "#73A13E",
+    color: GREEN,
     fontSize: 14,
     fontWeight: "800",
     textAlign: "center",
@@ -709,11 +760,12 @@ const styles = StyleSheet.create({
 
   primaryButton: {
     height: 48,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: GREEN,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 8,
+    paddingHorizontal: 18,
   },
   primaryButtonText: {
     color: "#FFFFFF",
@@ -734,7 +786,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: "center",
-    color: "#6B6B6B",
+    color: MUTED,
     fontSize: 15,
     paddingVertical: 20,
   },
@@ -743,11 +795,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#D6D6D6",
   },
-
   copyTargetTextDisabled: {
     color: "#9A9A9A",
   },
-
   copyDisabledHint: {
     marginTop: 6,
     fontSize: 12,

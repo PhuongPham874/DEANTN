@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,6 +13,15 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useShoppingListUI } from "@/src/hooks/useShoppingListUI";
 import ShoppingListCard from "@/components/shopping/ShoppingListCard";
+import BotIcon from "@/assets/hugeicons_bot";
+
+const BG = "#E2EDE5";
+const PRIMARY = "#3E9300";
+const WHITE = "#FFFFFF";
+const TEXT = "#2F2F2F";
+const MUTED = "#6B7280";
+const BORDER = "#CFE0D3";
+const ERROR = "#D93A3A";
 
 export default function ShoppingListScreen() {
   const {
@@ -38,13 +48,19 @@ export default function ShoppingListScreen() {
         onRefresh={onRefresh}
         ListHeaderComponent={
           <View>
-            <Text style={styles.screenTitle}>DANH SÁCH MUA SẮM</Text>
+            <View style={styles.header}>
+              <Text style={styles.screenTitle}>MUA SẮM</Text>
+
+              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85}>
+                <BotIcon width={40} height={38} />
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.searchBox}>
-              <Ionicons name="search-outline" size={22} color="#9A9A9A" />
+              <Ionicons name="search-outline" size={22} color={PRIMARY} />
               <TextInput
                 placeholder="Tìm kiếm"
-                placeholderTextColor="#9A9A9A"
+                placeholderTextColor={MUTED}
                 value={search}
                 onChangeText={setSearch}
                 style={styles.searchInput}
@@ -73,7 +89,7 @@ export default function ShoppingListScreen() {
 
       {loading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#6B9D2E" />
+          <ActivityIndicator size="large" color={PRIMARY} />
         </View>
       )}
     </SafeAreaView>
@@ -83,40 +99,56 @@ export default function ShoppingListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#DDE5DE",
+    backgroundColor: BG,
   },
   listContent: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 24,
   },
-  screenTitle: {
-    fontSize: 25,
-    fontWeight: "700",
-    color: "#5D9722",
-    letterSpacing: 0.5,
+  header: {
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 18,
   },
+  screenTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: PRIMARY,
+    letterSpacing: 0.3,
+  },
+  chatbotButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   searchBox: {
-    height: 58,
+    height: 52,
     borderRadius: 16,
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 18,
+    backgroundColor: WHITE,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 18,
     gap: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: "#2F2F2F",
+    color: TEXT,
   },
   card: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: WHITE,
     borderRadius: 18,
     padding: 18,
     marginBottom: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   cardContent: {
     flexDirection: "row",
@@ -129,30 +161,30 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: "800",
-    color: "#383838",
+    color: PRIMARY,
     marginBottom: 6,
   },
   cardDate: {
     fontSize: 14,
-    color: "#444",
+    color: TEXT,
     marginBottom: 6,
   },
   cardMeta: {
     fontSize: 14,
-    color: "#9A9A9A",
+    color: MUTED,
   },
   emptyBox: {
     alignItems: "center",
     paddingTop: 40,
   },
   emptyText: {
-    color: "#777",
+    color: MUTED,
     fontSize: 15,
     textAlign: "center",
   },
   errorText: {
     marginBottom: 12,
-    color: "#D93A3A",
+    color: ERROR,
     fontSize: 15,
   },
   loadingOverlay: {

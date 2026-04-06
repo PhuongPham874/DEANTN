@@ -26,6 +26,7 @@ type Props = {
 
 const { width: screenWidth } = Dimensions.get("window");
 
+// ✅ giống hook
 const menuWidth = Math.min(screenWidth * 0.5, 260);
 
 export default function ProfileDropdown({
@@ -37,6 +38,9 @@ export default function ProfileDropdown({
   onPressChangePassword,
   onPressLogout,
 }: Props) {
+  // ✅ đảm bảo không tràn phải
+  const safeLeft = Math.min(left, screenWidth - menuWidth - 12);
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <Pressable style={styles.overlay} onPress={onClose}>
@@ -46,12 +50,11 @@ export default function ProfileDropdown({
             styles.menuContainer,
             {
               top,
-              left,
+              left: safeLeft,
               width: menuWidth,
             },
           ]}
         >
-          {/* USER */}
           <View style={styles.userRow}>
             <ProfileIcon width={30} height={30} />
             <Text style={styles.username} numberOfLines={1}>
@@ -61,7 +64,6 @@ export default function ProfileDropdown({
 
           <View style={styles.divider} />
 
-          {/* CHANGE PASSWORD */}
           <TouchableOpacity
             style={styles.menuItem}
             onPress={onPressChangePassword}
@@ -70,7 +72,6 @@ export default function ProfileDropdown({
             <Text style={styles.menuText}>Đổi mật khẩu</Text>
           </TouchableOpacity>
 
-          {/* LOGOUT */}
           <TouchableOpacity
             style={styles.menuItem}
             onPress={onPressLogout}
@@ -96,7 +97,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
 
-    // shadow chuẩn mobile
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: Platform.OS === "ios" ? 0.12 : 0.2,

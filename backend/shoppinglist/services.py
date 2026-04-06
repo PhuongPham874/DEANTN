@@ -43,7 +43,6 @@ class ShoppingListService:
         ).select_related("dish")
 
     @staticmethod
-    @staticmethod
     def _aggregate_ingredients_from_meal_details(meal_details):
         dish_ids = list(meal_details.values_list("dish_id", flat=True))
         if not dish_ids:
@@ -139,11 +138,11 @@ class ShoppingListService:
         }
 
     @staticmethod
-    def _find_mergeable_item(shopping_list, ingredient_name, unit, exclude_item_id=None):
+    def _find_mergeable_item(shopping_list, ingredient, unit, exclude_item_id=None):
         queryset = (
             ShoppingItem.objects.filter(
                 shopping=shopping_list,
-                ingredient__ingredient_name__iexact=(ingredient_name or "").strip(),
+                ingredient__ingredient_name__iexact=(ingredient.ingredient_name or "").strip(),
             )
             .select_related("ingredient")
             .order_by("item_id")
@@ -157,10 +156,36 @@ class ShoppingListService:
         for existing_item in queryset:
             existing_unit = IngredientMergeHelper.normalize_unit(existing_item.unit)
 
-            if IngredientMergeHelper.can_merge(existing_unit, normalized_unit):
-                return existing_item
+            if not IngredientMergeHelper.can_merge(existing_unit, normalized_unit):
+                continue
 
-        return None
+            existing_ingredient = existing_item.ingredient
+
+            existing_category_name = (getattr(existing_ingredient, "category_name", None) or "").strip().lower()
+            new_category_name = (getattr(ingredient, "category_name", None) or "").strip().lower()
+
+            existing_type = (getattr(existing_ingredient, "group", None) or "").strip().lower()
+            new_type = (getattr(ingredient, "group", None) or "").strip().lower()
+
+            if existing_category_name == new_category_name and existing_type == new_type:
+                return {
+                    "status": "mergeable",
+                    "item": existing_item,
+                }
+
+            return {
+                "status": "conflict",
+                "item": existing_item,
+                "errors": {
+                    "ingredient_group": ["Vui lòng kiểm tra lại"],
+                    "ingredient_type": ["Vui lòng kiểm tra lại"],
+                },
+            }
+
+        return {
+            "status": "none",
+            "item": None,
+        }
 
     @staticmethod
     def _merge_item_quantity(existing_item, quantity, unit):
@@ -214,11 +239,12 @@ class ShoppingListService:
                 "data": None,
             }
 
-        # Nếu đã có list tuần của plan này thì xóa đúng list tuần đó rồi tạo lại
-        ShoppingListService.delete_week_shopping_data(
-            user=user,
-            plan=plan,
-        )
+        if ShoppingListService.has_week_shopping_list(user, plan):
+            return {
+                "success": False,
+                "message": "Danh sách mua sắm tuần này đã tồn tại",
+                "data": None,
+            }
 
         shopping_list = ShoppingList.objects.create(
             user=user,
@@ -282,12 +308,12 @@ class ShoppingListService:
                 "data": None,
             }
 
-        # Nếu ngày này đã có shopping list thì xóa đúng list của ngày đó rồi tạo lại
-        ShoppingListService.delete_day_shopping_data(
-            user=user,
-            plan=plan,
-            target_date=target_date,
-        )
+        if ShoppingListService.has_day_shopping_list(user, plan, target_date):
+            return {
+                "success": False,
+                "message": "Danh sách mua sắm ngày này đã tồn tại",
+                "data": None,
+            }
 
         shopping_list = ShoppingList.objects.create(
             user=user,
@@ -383,6 +409,21 @@ class ShoppingListService:
         }
 
     @staticmethod
+    def _delete_shopping_list_if_empty(shopping_list):
+        if not shopping_list.items.exists():
+            shopping_id = shopping_list.shopping_id
+            shopping_list.delete()
+            return {
+                "deleted": True,
+                "shopping_id": shopping_id,
+            }
+        return {
+            "deleted": False,
+            "shopping_id": shopping_list.shopping_id,
+        }
+
+
+    @staticmethod
     @transaction.atomic
     def delete_shopping_item(user, item_id):
         item = (
@@ -401,8 +442,11 @@ class ShoppingListService:
                 "data": None,
             }
 
+        shopping_list = item.shopping
         shopping_id = item.shopping_id
         item.delete()
+
+        delete_result = ShoppingListService._delete_shopping_list_if_empty(shopping_list)
 
         return {
             "success": True,
@@ -410,6 +454,7 @@ class ShoppingListService:
             "data": {
                 "item_id": item_id,
                 "shopping_id": shopping_id,
+                "shopping_deleted": delete_result["deleted"],
             },
         }
 
@@ -459,15 +504,23 @@ class ShoppingListService:
         quantity = normalized_data["quantity"]
         unit = normalized_data["unit"]
 
-        mergeable_item = ShoppingListService._find_mergeable_item(
+        merge_result = ShoppingListService._find_mergeable_item(
             shopping_list=shopping_list,
-            ingredient_name=ingredient.ingredient_name,
+            ingredient=ingredient,
             unit=unit,
         )
 
-        if mergeable_item:
+        if merge_result["status"] == "conflict":
+            return {
+                "success": False,
+                "message": "Vui lòng kiểm tra lại",
+                "errors": merge_result["errors"],
+                "data": None,
+            }
+
+        if merge_result["status"] == "mergeable":
             merged_item = ShoppingListService._merge_item_quantity(
-                existing_item=mergeable_item,
+                existing_item=merge_result["item"],
                 quantity=quantity,
                 unit=unit,
             )
@@ -523,30 +576,43 @@ class ShoppingListService:
             }
 
         ingredient, _, normalized_data = IngredientInputService.get_or_create_ingredient(validated_data)
-
         quantity = normalized_data["quantity"]
         unit = normalized_data["unit"]
 
-        duplicate_item = ShoppingItem.objects.filter(
-            shopping=item.shopping,
+        merge_result = ShoppingListService._find_mergeable_item(
+            shopping_list=item.shopping,
             ingredient=ingredient,
             unit=unit,
-        ).exclude(item_id=item.item_id).first()
+            exclude_item_id=item.item_id,
+        )
 
-        if duplicate_item:
-            duplicate_item.quantity += quantity
-            duplicate_item.save(update_fields=["quantity"])
-            old_item_id = item.item_id
-            item.delete()
-
+        if merge_result["status"] == "conflict":
             return {
-                "success": True,
-                "message": "Cập nhật mục mua sắm thành công",
-                "data": {
-                    **ShoppingListService._build_shopping_item_detail(duplicate_item),
-                    "merged_from_item_id": old_item_id,
-                },
+                "success": False,
+                "message": "Vui lòng kiểm tra lại",
+                "errors": merge_result["errors"],
+                "data": None,
             }
+
+        if merge_result["status"] == "mergeable":
+            merged_item = ShoppingListService._merge_item_quantity(
+                existing_item=merge_result["item"],
+                quantity=quantity,
+                unit=unit,
+            )
+
+            if merged_item:
+                old_item_id = item.item_id
+                item.delete()
+
+                return {
+                    "success": True,
+                    "message": "Cập nhật mục mua sắm thành công",
+                    "data": {
+                        **ShoppingListService._build_shopping_item_detail(merged_item),
+                        "merged_from_item_id": old_item_id,
+                    },
+                }
 
         item.ingredient = ingredient
         item.quantity = quantity
@@ -622,13 +688,15 @@ class ShoppingListService:
         if not shopping_list:
             return False
 
-        shopping_list.items.filter(plan=plan).delete()
+        shopping_list.items.filter(plan=plan).delete() #Xóa trong record shopping item của plan_id = plan và shopping_id = list mua sắm của target date
+        #Như vậy source date là để map với ngày được tạo shopping list chứ ko nó sẽ map với cả tuần (theo plan_id)
+        #Lý do là vì khi xóa plan day -> trả về plan id và user id, với 2 trường này thì shopping list chỉ check đc các record thuộc planid và user id -> xóa toàn bộ record trong plan id chứ không phải mỗi ngày muốn xóa thôi
         shopping_list.delete()
         return True
 
     @staticmethod
     @transaction.atomic
-    def delete_week_shopping_data(user, plan):
+    def delete_week_shopping_data(user, plan): #dùng xóa list tuần (type = week)
         shopping_list = ShoppingListService._get_week_shopping_list_by_plan(
             user=user,
             plan=plan,
@@ -642,7 +710,7 @@ class ShoppingListService:
 
     @staticmethod
     @transaction.atomic
-    def delete_all_day_shopping_data_by_plan(user, plan):
+    def delete_all_day_shopping_data_by_plan(user, plan): #nghĩa là khi xóa một thực đơn -> xóa shopping list của thực đơn + shopping list của các ngày nằm trong thực đơn đó
         shopping_lists = ShoppingList.objects.filter(
             user=user,
             list_type="day",

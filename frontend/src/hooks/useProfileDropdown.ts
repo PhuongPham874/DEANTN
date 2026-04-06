@@ -32,24 +32,26 @@ export function useProfileDropdown() {
       node,
       (x: number, y: number, width: number, height: number) => {
         const screenWidth = Dimensions.get("window").width;
-        const menuWidth = Math.min(screenWidth * 0.65, 260);
 
-        // neo theo mép phải icon profile
-        const horizontalOffset = 6;
-        const calculatedLeft = x + width - menuWidth + horizontalOffset;
+        // ✅ ĐỒNG BỘ với ProfileDropdown
+        const menuWidth = Math.min(screenWidth * 0.5, 260);
 
+        // ✅ căn mép phải dropdown theo mép phải icon
+        const calculatedLeft = x + width - menuWidth;
+
+        // ✅ tránh tràn màn
         const safeLeft = Math.max(
-            12,
-            Math.min(calculatedLeft, screenWidth - menuWidth - 12)
+          12,
+          Math.min(calculatedLeft, screenWidth - menuWidth - 12)
         );
 
         setPosition({
-            top: y + height + 4,
-            left: safeLeft,
+          top: y + height + 6, // khoảng cách dưới icon
+          left: safeLeft,
         });
 
         setVisible(true);
-        }
+      }
     );
   };
 

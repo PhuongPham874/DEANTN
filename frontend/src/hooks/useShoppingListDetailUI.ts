@@ -28,6 +28,7 @@ type OptionItem = {
 };
 
 const groupOptions: OptionItem[] = [
+  { label: "Chọn nhóm", value: "" },
   { label: "Rau củ", value: "rau củ" },
   { label: "Thịt", value: "thịt" },
   { label: "Cá - Hải sản", value: "cá-hải sản" },
@@ -38,6 +39,7 @@ const groupOptions: OptionItem[] = [
 ];
 
 const categoryOptions: OptionItem[] = [
+  { label: "Chọn loại", value: "" },
   { label: "Thực phẩm", value: "thực phẩm" },
   { label: "Gia vị", value: "gia vị" },
 ];
@@ -222,35 +224,72 @@ export function useShoppingListDetailUI() {
     [fetchDetail]
   );
 
+  const handleAfterDeleteShoppingItem = useCallback(
+    async (shoppingId: number) => {
+      try {
+        const response = await getShoppingListDetail(shoppingId);
+        const data = response.data;
+
+        const totalItems =
+          (data?.pending_items?.length || 0) + (data?.bought_items?.length || 0);
+
+        if (totalItems === 0) {
+          router.replace("/shopping");
+          return;
+        }
+
+        setDetail(data);
+      } catch (error) {
+        router.replace("/shopping");
+      }
+    },
+    [router]
+  );
+
+
   const onDeleteItem = useCallback(
     (itemId: number) => {
-      Alert.alert("Xác nhận xóa nguyên liệu", "Bạn có chắc muốn xóa nguyên liệu này?", [
-        { text: "Hủy", style: "cancel" },
-        {
-          text: "Xóa",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setDeletingItemId(itemId);
-              await deleteShoppingItem(itemId);
-              await fetchDetail(false);
-            } catch (err: any) {
-              Alert.alert("Thông báo", normalizeError(err));
-            } finally {
-              setDeletingItemId(null);
-            }
+      const item = [...(detail?.pending_items || []), ...(detail?.bought_items || [])]
+        .find(i => i.item_id === itemId);
+
+      const ingredientName = item?.ingredient_name || "nguyên liệu này";
+
+      Alert.alert(
+        "Xác nhận xóa nguyên liệu",
+        `Bạn có chắc chắn muốn xóa nguyên liệu "${ingredientName}" khỏi danh sách không?`,
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Đồng ý",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                setDeletingItemId(itemId);
+                await deleteShoppingItem(itemId);
+                await fetchDetail(false);
+                Alert.alert("Thành công", `Xóa nguyên liệu khỏi danh sách thành công`);
+                if (detail?.shopping_id) {
+                await handleAfterDeleteShoppingItem(detail.shopping_id);
+              }
+
+              } catch (err: any) {
+                Alert.alert("Thông báo", normalizeError(err)); 
+              } finally {
+                setDeletingItemId(null);
+              }
+            },
           },
-        },
-      ]);
+        ]
+      );
     },
-    [fetchDetail]
+    [detail, fetchDetail]
   );
   const onAddBoughtItemsToInventory = useCallback(() => {
   if (!detail) return;
 
   Alert.alert(
     "Xác nhận",
-    "Bạn có muốn thêm các nguyên liệu đã mua vào kho không?",
+    "Bạn có chắc chắn muốn cập nhật các nguyên liệu đã mua vào kho?",
     [
       { text: "Hủy", style: "cancel" },
       {
@@ -263,10 +302,11 @@ export function useShoppingListDetailUI() {
 
             Alert.alert(
               "Thông báo",
-              response.message || "Đã thêm nguyên liệu vào kho thành công"
+              response.message || "Đã cập nhật nguyên liệu vào kho thực phẩm"
             );
 
             await fetchDetail(false);
+            router.replace("/inventory");
           } catch (err: any) {
             Alert.alert("Thông báo", normalizeError(err));
           } finally {

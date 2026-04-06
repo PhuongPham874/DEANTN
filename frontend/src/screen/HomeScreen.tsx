@@ -8,13 +8,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import DishCard from "@/components/home/DishCard";
 import { useHomeUI } from "@/src/hooks/useHomeUI";
 import Profile_icon from "@/assets/profile.svg";
+import BotIcon from "@/assets/hugeicons_bot";
 import { useProfileDropdown } from "@/src/hooks/useProfileDropdown";
 import ProfileDropdown from "@/components/home/ProfileDropdown";
 import ChangePasswordModal from "@/components/home/ChangePasswordModal";
@@ -22,6 +22,14 @@ import { useChangePasswordUI } from "@/src/hooks/useChangePasswordUI";
 import { router } from "expo-router";
 import { logoutApi } from "@/src/api/logoutApi";
 import { clearAuthToken } from "@/src/utils/authStorage";
+
+const BG = "#E2EDE5";
+const PRIMARY = "#3E9300";
+const WHITE = "#FFFFFF";
+const TEXT = "#2F2F2F";
+const MUTED = "#6B7280";
+const BORDER = "#CFE0D3";
+const ERROR = "#D62828";
 
 export default function HomeScreen() {
   const {
@@ -36,6 +44,8 @@ export default function HomeScreen() {
     onSelectCategory,
     onToggleFavorite,
     onPressDish,
+    emptyMessage,
+    isNotFound,
   } = useHomeUI();
 
   const {
@@ -78,6 +88,13 @@ export default function HomeScreen() {
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          isNotFound ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>{emptyMessage}</Text>
+            </View>
+          ) : null
+        }
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
@@ -87,7 +104,10 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.headerRight}>
-                <Ionicons name="sparkles-outline" size={28} color="#669C2F" />
+                <TouchableOpacity activeOpacity={0.85} style={styles.chatbotButton}>
+                  <BotIcon width={40} height={38} />
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   ref={profileButtonRef}
                   activeOpacity={0.8}
@@ -96,12 +116,11 @@ export default function HomeScreen() {
                 >
                   <Profile_icon width={28} height={28} />
                 </TouchableOpacity>
-
               </View>
             </View>
 
             <View style={styles.searchBox}>
-              <Ionicons name="search-outline" size={20} color="#9CA3AF" />
+              <Ionicons name="search-outline" size={20} color={PRIMARY} />
               <TextInput
                 value={search}
                 onChangeText={setSearch}
@@ -126,9 +145,7 @@ export default function HomeScreen() {
                     activeOpacity={0.8}
                     onPress={() => onSelectCategory(item.key)}
                   >
-                    <Text
-                      style={[styles.tabText, isActive && styles.tabTextActive]}
-                    >
+                    <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
                       {item.label}
                     </Text>
                   </TouchableOpacity>
@@ -170,7 +187,6 @@ export default function HomeScreen() {
         showConfirmPassword={changePasswordUI.showConfirmPassword}
         errors={changePasswordUI.errors}
         submitting={changePasswordUI.submitting}
-        disableSubmit={changePasswordUI.disableSubmit}
         setOldPassword={changePasswordUI.setOldPassword}
         setNewPassword={changePasswordUI.setNewPassword}
         setConfirmPassword={changePasswordUI.setConfirmPassword}
@@ -183,7 +199,7 @@ export default function HomeScreen() {
 
       {loading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#669C2F" />
+          <ActivityIndicator size="large" color={PRIMARY} />
         </View>
       )}
     </SafeAreaView>
@@ -193,7 +209,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E2EDE5",
+    backgroundColor: BG,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -208,39 +224,47 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: "#2F2F2F",
+    color: TEXT,
   },
   title: {
     marginTop: 4,
     fontSize: 18,
     fontWeight: "600",
-    color: "#2F2F2F",
+    color: TEXT,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16
+    gap: 12,
+  },
+  chatbotButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileButton: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     justifyContent: "center",
     alignItems: "center",
   },
   searchBox: {
     height: 52,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: WHITE,
     borderRadius: 16,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   searchInput: {
     flex: 1,
     marginLeft: 10,
     fontSize: 16,
-    color: "#222222",
+    color: TEXT,
   },
   tabList: {
     paddingBottom: 16,
@@ -249,24 +273,24 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#B7C7A7",
-    backgroundColor: "#EDF2EC",
+    borderColor: BORDER,
+    backgroundColor: WHITE,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 22,
     marginRight: 12,
   },
   tabItemActive: {
-    backgroundColor: "#669C2F",
-    borderColor: "#669C2F",
+    backgroundColor: BG,
+    borderColor: PRIMARY,
   },
   tabText: {
     fontSize: 16,
-    color: "#2F2F2F",
+    color: TEXT,
     fontWeight: "500",
   },
   tabTextActive: {
-    color: "#FFFFFF",
+    color: PRIMARY,
     fontWeight: "700",
   },
   row: {
@@ -278,11 +302,21 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginBottom: 12,
-    color: "#D62828",
+    color: ERROR,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
+  },
+  emptyContainer: {
+    paddingVertical: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: MUTED,
+    textAlign: "center",
   },
 });

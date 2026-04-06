@@ -28,6 +28,14 @@ type Props = {
   initialData?: Partial<IndividualDishFormPayload> | null;
 };
 
+const BG = "#E2EDE5";
+const PRIMARY = "#3E9300";
+const WHITE = "#FFFFFF";
+const TEXT = "#2F2F2F";
+const MUTED = "#6B7280";
+const BORDER = "#CFE0D3";
+const ERROR = "#D93A3A";
+
 function buildIngredientDisplayText(item: {
   quantity: number;
   unit: string;
@@ -40,8 +48,8 @@ function buildIngredientDisplayText(item: {
   const amountText = compactUnits.includes(unit)
     ? `${item.quantity}${unit}`
     : unit
-    ? `${item.quantity} ${unit}`
-    : `${item.quantity}`;
+      ? `${item.quantity} ${unit}`
+      : `${item.quantity}`;
 
   return `${amountText} ${ingredientName}`.trim();
 }
@@ -60,22 +68,20 @@ export default function IndividualDishFormScreen({
   if (ui.loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={PRIMARY} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.header}>
-          <Text style={styles.screenTitle}>YÊU THÍCH</Text>
-          <Ionicons name="chatbubble-ellipses-outline" size={30} color="#5D9722" />
+          <Text style={styles.screenTitle}>MÓN ĂN</Text>
         </View>
-        
 
         <View style={styles.card}>
           <ScrollView
@@ -93,7 +99,7 @@ export default function IndividualDishFormScreen({
                 <Image source={{ uri: ui.image.uri }} style={styles.image} />
               ) : (
                 <View style={styles.imagePlaceholder}>
-                  <Ionicons name="camera" size={64} color="#666666" />
+                  <Ionicons name="camera" size={64} color={PRIMARY} />
                 </View>
               )}
             </TouchableOpacity>
@@ -272,39 +278,40 @@ export default function IndividualDishFormScreen({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#E4ECE4",
+    backgroundColor: BG,
   },
   container: {
     flex: 1,
-    backgroundColor: "#E4ECE4",
+    backgroundColor: BG,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#E4ECE4",
+    backgroundColor: BG,
   },
   header: {
-    paddingHorizontal: 22,
-    paddingTop: 12,
-    paddingBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    alignItems: "flex-start",
+    justifyContent: "center",
   },
   screenTitle: {
     fontSize: 25,
     fontWeight: "700",
-    color: "#669C2F",
-    letterSpacing: 0.5,
+    color: PRIMARY,
+    letterSpacing: 0.3,
   },
   card: {
     flex: 1,
     marginHorizontal: 16,
     marginBottom: 8,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: WHITE,
     borderRadius: 24,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   scroll: {
     flex: 1,
@@ -318,7 +325,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 22,
     fontWeight: "800",
-    color: "#5D9722",
+    color: PRIMARY,
     marginBottom: 22,
   },
   imageBox: {
@@ -327,8 +334,10 @@ const styles = StyleSheet.create({
     height: 130,
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#EDF1ED",
+    backgroundColor: BG,
     marginBottom: 22,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   image: {
     width: "100%",
@@ -340,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   generalError: {
-    color: "#D93A3A",
+    color: ERROR,
     fontSize: 13,
     marginBottom: 10,
     textAlign: "center",
@@ -363,44 +372,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 36,
     borderRadius: 999,
-    backgroundColor: "#DDE5DE",
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
     justifyContent: "center",
     alignItems: "center",
   },
   categoryChipActive: {
-    backgroundColor: "#5D9722",
+    backgroundColor: BG,
+    borderColor: PRIMARY,
   },
   categoryChipText: {
-    color: "#2F2F2F",
+    color: TEXT,
     fontSize: 16,
     fontWeight: "600",
   },
   categoryChipTextActive: {
-    color: "#FFFFFF",
+    color: PRIMARY,
   },
   section: {
     marginBottom: 18,
   },
   sectionTitle: {
     fontSize: 16,
-    color: "#2F2F2F",
+    color: TEXT,
     fontWeight: "500",
     marginBottom: 8,
   },
   required: {
-    color: "#D93A3A",
+    color: ERROR,
   },
   sectionBox: {
-    backgroundColor: "#DDE5DE",
+    backgroundColor: BG,
     borderRadius: 16,
     padding: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   addButton: {
     alignSelf: "center",
     minWidth: 120,
     height: 36,
     borderRadius: 999,
-    backgroundColor: "#5D9722",
+    backgroundColor: PRIMARY,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 16,
@@ -412,7 +426,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   errorText: {
-    color: "#D93A3A",
+    color: ERROR,
     fontSize: 12,
     marginBottom: 4,
   },

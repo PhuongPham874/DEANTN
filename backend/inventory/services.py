@@ -1,6 +1,7 @@
 from django.db import transaction
 
 from home.services import IngredientInputService, IngredientMergeHelper
+from shoppinglist.services import ShoppingListService
 from shoppinglist.models import ShoppingList, ShoppingItem
 from .models import FoodInventory
 
@@ -137,7 +138,7 @@ class FoodInventoryService:
             if merged_item:
                 return {
                     "success": True,
-                    "message": "Thêm nguyên liệu vào kho thành công",
+                    "message": "Thêm nguyên liệu mới thành công",
                     "data": FoodInventoryService._build_food_inventory_item(merged_item),
                 }
 
@@ -150,7 +151,7 @@ class FoodInventoryService:
 
         return {
             "success": True,
-            "message": "Thêm nguyên liệu vào kho thành công",
+            "message": "Thêm nguyên liệu mới thành công",
             "data": FoodInventoryService._build_food_inventory_item(item),
         }
 
@@ -243,14 +244,17 @@ class FoodInventoryService:
             processed_item_ids.append(shopping_item.item_id)
 
         bought_items_queryset.delete()
+        delete_result = ShoppingListService._delete_shopping_list_if_empty(shopping_list)
+
         return {
             "success": True,
-            "message": "Thêm các nguyên liệu đã mua vào kho thành công",
+            "message": "Đã cập nhật nguyên liệu vào kho thực phẩm",
             "data": {
                 "shopping_id": shopping_id,
                 "created_count": created_count,
                 "merged_count": merged_count,
                 "moved_item_count": moved_item_count,
                 "processed_item_ids": processed_item_ids,
+                "shopping_deleted": delete_result["deleted"],
             },
         }

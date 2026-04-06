@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import BotIcon from "@/assets/hugeicons_bot";
 
 type Props = {
   styles: any;
@@ -25,20 +26,15 @@ export default function MealPlanHeader({
 }: Props) {
   return (
     <View>
-      <View style={styles.headerRow}>
-        <Text style={styles.screenTitle}>THỰC ĐƠN TUẦN</Text>
-        <Ionicons name="chatbubble-ellipses-outline" size={34} color="#5D9625" />
-      </View>
-
       <View style={styles.weekSwitcher}>
         <TouchableOpacity style={styles.circleButton} onPress={onPreviousWeek}>
-          <Ionicons name="chevron-back" size={18} color="#5D9625" />
+          <Ionicons name="chevron-back" size={18} color="#3E9300" />
         </TouchableOpacity>
 
         <Text style={styles.weekTitle}>{weekTitle}</Text>
 
         <TouchableOpacity style={styles.circleButton} onPress={onNextWeek}>
-          <Ionicons name="chevron-forward" size={18} color="#5D9625" />
+          <Ionicons name="chevron-forward" size={18} color="#3E9300" />
         </TouchableOpacity>
       </View>
 
@@ -51,6 +47,7 @@ export default function MealPlanHeader({
         <TouchableOpacity
           style={styles.smallGreenButton}
           onPress={onCreateShoppingWeek}
+          disabled={creatingWeekShopping}
         >
           <MaterialCommunityIcons name="cart-outline" size={14} color="#FFFFFF" />
           <Text style={styles.smallButtonText}>Mua sắm tuần</Text>

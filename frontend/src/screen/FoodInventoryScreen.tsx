@@ -11,11 +11,21 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
 
 import IngredientModal from "@/components/individualDishForm/IngredientModal";
 import { useFoodInventoryUI } from "@/src/hooks/useFoodInventoryUI";
+import BotIcon from "@/assets/hugeicons_bot";
+
+const BG = "#E2EDE5";
+const PRIMARY = "#3E9300";
+const WHITE = "#FFFFFF";
+const TEXT = "#2F2F2F";
+const MUTED = "#6B7280";
+const BORDER = "#CFE0D3";
+const ERROR = "#D93A3A";
+const DANGER = "#E14B4B";
 
 type InventoryCardProps = {
   name: string;
@@ -49,9 +59,9 @@ function InventoryCard({
           disabled={deleting}
         >
           {deleting ? (
-            <ActivityIndicator size="small" color="#E14B4B" />
+            <ActivityIndicator size="small" color={DANGER} />
           ) : (
-            <Feather name="trash-2" size={20} color="#E14B4B" />
+            <Feather name="trash-2" size={20} color={DANGER} />
           )}
         </TouchableOpacity>
       </View>
@@ -60,32 +70,27 @@ function InventoryCard({
 }
 
 export default function FoodInventoryScreen() {
+  const insets = useSafeAreaInsets();
+
   const {
     items,
     loading,
     refreshing,
     error,
     emptyText,
-
     search,
     setSearch,
     selectedGroup,
     setSelectedGroup,
     groupTabs,
-
     modalVisible,
     draft,
     draftErrors,
     deletingItemId,
-    savingDraft,
-
     unitOptions,
     groupOptions,
     categoryOptions,
-
     onRefresh,
-    reload,
-
     openCreateModal,
     closeModal,
     onChangeDraft,
@@ -97,34 +102,37 @@ export default function FoodInventoryScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <StatusBar
-        barStyle={Platform.OS === "ios" ? "dark-content" : "dark-content"}
-        backgroundColor="#DDE5DE"
+        barStyle="dark-content"
+        backgroundColor={BG}
       />
 
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.food_inventory_id)}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: insets.bottom + 108 },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshing={refreshing}
         onRefresh={onRefresh}
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
-              <Text style={styles.title}>NGUYÊN LIỆU</Text>
+              <Text style={styles.title}>THỰC PHẨM</Text>
 
-              <TouchableOpacity style={styles.aiButton} activeOpacity={0.8}>
-                <Ionicons name="sparkles-outline" size={26} color="#6B9D2E" />
+              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85}>
+                <BotIcon width={40} height={38} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.searchBox}>
-              <Ionicons name="search-outline" size={22} color="#9C9C9C" />
+              <Ionicons name="search-outline" size={22} color={PRIMARY} />
               <TextInput
                 value={search}
                 onChangeText={setSearch}
                 placeholder="Tìm kiếm"
-                placeholderTextColor="#9C9C9C"
+                placeholderTextColor={MUTED}
                 style={styles.searchInput}
               />
             </View>
@@ -158,14 +166,11 @@ export default function FoodInventoryScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.centerBox}>
-              <ActivityIndicator size="large" color="#6B9D2E" />
+              <ActivityIndicator size="large" color={PRIMARY} />
             </View>
           ) : (
             <View style={styles.emptyWrap}>
               <Text style={styles.emptyText}>{emptyText}</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={() => reload(false)}>
-                <Text style={styles.retryText}>Tải lại</Text>
-              </TouchableOpacity>
             </View>
           )
         }
@@ -181,8 +186,12 @@ export default function FoodInventoryScreen() {
         )}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={openCreateModal} activeOpacity={0.88}>
-        <Ionicons name="add" size={30} color="#FFF" />
+      <TouchableOpacity
+        style={[styles.fab, { bottom: insets.bottom + 20 }]}
+        onPress={openCreateModal}
+        activeOpacity={0.9}
+      >
+        <Ionicons name="add" size={30} color={WHITE} />
       </TouchableOpacity>
 
       <IngredientModal
@@ -203,12 +212,11 @@ export default function FoodInventoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#DDE5DE",
+    backgroundColor: BG,
   },
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 120,
   },
 
   header: {
@@ -216,36 +224,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 18,
+    minHeight: 40,
   },
   title: {
-    fontSize: 25,
+    fontSize: 28,
     fontWeight: "700",
-    color: "#5D9722",
-    letterSpacing: 0.5,
-    marginBottom: 18,
+    color: PRIMARY,
+    letterSpacing: 0.3,
   },
 
-  aiButton: {
-    width: 34,
-    height: 34,
+  chatbotButton: {
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
   },
 
   searchBox: {
-    height: 56,
-    backgroundColor: "#F5F5F5",
+    height: 52,
+    backgroundColor: WHITE,
     borderRadius: 16,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 18,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   searchInput: {
     flex: 1,
     marginLeft: 10,
     fontSize: 16,
-    color: "#2F2F2F",
+    color: TEXT,
   },
 
   tabList: {
@@ -253,26 +263,26 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tabItem: {
-    minHeight: 48,
+    minHeight: 44,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#B7C7A7",
-    backgroundColor: "#EDF2EC",
+    borderColor: BORDER,
+    backgroundColor: WHITE,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 22,
+    paddingHorizontal: 18,
   },
   tabItemActive: {
-    backgroundColor: "#669C2F",
-    borderColor: "#669C2F",
+    backgroundColor: BG,
+    borderColor: PRIMARY,
   },
   tabText: {
-    fontSize: 16,
-    color: "#2F2F2F",
+    fontSize: 15,
+    color: TEXT,
     fontWeight: "500",
   },
   tabTextActive: {
-    color: "#FFF",
+    color: PRIMARY,
     fontWeight: "700",
   },
 
@@ -280,13 +290,15 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   card: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: WHITE,
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 15,
     minHeight: 72,
     flexDirection: "row",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: BORDER,
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -301,12 +313,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#3A3A3A",
+    color: PRIMARY,
     marginBottom: 6,
   },
   cardMeta: {
     fontSize: 14,
-    color: "#8B8B8B",
+    color: MUTED,
   },
   cardActions: {
     flexDirection: "row",
@@ -323,12 +335,11 @@ const styles = StyleSheet.create({
 
   fab: {
     position: "absolute",
-    right: 22,
-    bottom: 28,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#669C2F",
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: PRIMARY,
     alignItems: "center",
     justifyContent: "center",
     elevation: 6,
@@ -336,6 +347,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
+    ...(Platform.OS === "ios" ? { overflow: "visible" } : {}),
   },
 
   centerBox: {
@@ -349,22 +361,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: "#777",
+    color: MUTED,
     textAlign: "center",
     marginBottom: 12,
   },
-  retryBtn: {
-    backgroundColor: "#6B9D2E",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  retryText: {
-    color: "#FFF",
-    fontWeight: "700",
-  },
   errorText: {
-    color: "#D93A3A",
+    color: ERROR,
     fontSize: 14,
     marginBottom: 12,
   },

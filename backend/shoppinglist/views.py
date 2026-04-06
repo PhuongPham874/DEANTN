@@ -48,9 +48,6 @@ def shopping_list_generate_week_view(request):
         week_start=serializer.validated_data["start_date"],
     )
 
-    if not result["success"]:
-        return Response({"message": result["message"], "data": None}, status=status.HTTP_400_BAD_REQUEST)
-
     return Response(
         {"message": result["message"], "data": result["data"]},
         status=status.HTTP_201_CREATED,
@@ -67,9 +64,6 @@ def shopping_list_generate_day_view(request):
         user=request.user,
         target_date=serializer.validated_data["date"],
     )
-
-    if not result["success"]:
-        return Response({"message": result["message"], "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(
         {"message": result["message"], "data": result["data"]},

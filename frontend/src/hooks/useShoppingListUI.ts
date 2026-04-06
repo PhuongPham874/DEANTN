@@ -78,21 +78,31 @@ export function useShoppingListUI() {
 
   const onDeleteList = useCallback(
     (shoppingId: number) => {
-      Alert.alert("Xác nhận xóa danh sách", "Bạn có chắc muốn xóa danh sách mua sắm này?", [
-        { text: "Hủy", style: "cancel" },
-        {
-          text: "Xóa",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteShoppingList(shoppingId);
-              await fetchShoppingLists(search, false);
-            } catch (err: any) {
-              Alert.alert("Thông báo", normalizeError(err));
-            }
+      Alert.alert(
+        "Xác nhận xóa danh sách",
+        "Bạn có chắc muốn xóa danh sách mua sắm này?",
+        [
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Đồng ý",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const response = await deleteShoppingList(shoppingId);
+
+                await fetchShoppingLists(search, false);
+
+                Alert.alert(
+                  "Thành công",
+                  response.message || "Xóa danh sách mua sắm thành công"
+                );
+              } catch (err: any) {
+                Alert.alert("Thông báo", normalizeError(err));
+              }
+            },
           },
-        },
-      ]);
+        ]
+      );
     },
     [fetchShoppingLists, search]
   );

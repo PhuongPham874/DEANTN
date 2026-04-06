@@ -350,7 +350,10 @@ export function useMealPlanUI() {
         }));
 
         await loadWeek(weekData?.start_date || pickerContext.date);
-        showMessage("Thêm món vào thực đơn thành công");
+        Alert.alert(
+        "Thông báo",
+        "Thêm món vào thực đơn thành công"
+      );
       } catch (error) {
         if (error instanceof ApiFormError) {
           setDishPickerState((prev) => ({
@@ -376,7 +379,10 @@ export function useMealPlanUI() {
       try {
         await deleteMealPlanDetailApi({ plan_detail_id: planDetailId });
         await loadWeek(weekData?.start_date);
-        showMessage("Xóa món khỏi thực đơn thành công");
+        Alert.alert(
+        "Thông báo",
+        "Xóa món khỏi thực đơn thành công"
+      );
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Không thể xóa món khỏi thực đơn";
@@ -388,10 +394,10 @@ export function useMealPlanUI() {
 
   const confirmDeleteAssignedDish = useCallback(
     (planDetailId: number) => {
-      Alert.alert("Xóa món ăn", "Bạn có chắc muốn xóa món này khỏi thực đơn?", [
+      Alert.alert("Xóa món ăn", "Bạn có chắc muốn xóa món này khỏi thực đơn? Nếu đã tạo danh sách mua sắm, danh sách đó sẽ bị xóa.", [
         { text: "Hủy", style: "cancel" },
         {
-          text: "Xóa",
+          text: "Đồng ý",
           style: "destructive",
           onPress: () => deleteAssignedDish(planDetailId),
         },
@@ -405,20 +411,25 @@ export function useMealPlanUI() {
 
     Alert.alert(
       "Xóa thực đơn tuần",
-      "Bạn có chắc muốn xóa toàn bộ món ăn trong tuần này?",
+      `Bạn có chắc chắn thực đơn tuần từ ${formatDateLabel(
+        weekData.start_date
+      )} đến ${formatDateLabel(weekData.end_date)} không?`,
       [
         { text: "Hủy", style: "cancel" },
         {
-          text: "Xóa",
+          text: "Đồng ý",
           style: "destructive",
           onPress: async () => {
             try {
-              await clearMealPlanWeekApi({ start_date: weekData.start_date });
+              // Lấy response trả về từ API
+              const response = await clearMealPlanWeekApi({ start_date: weekData.start_date });
+              
               await loadWeek(weekData.start_date);
-              showMessage("Xóa thực đơn tuần thành công");
+
+              // Hiển thị message từ Backend (nếu có), nếu không có mới dùng message mặc định
+              showMessage(response.message || "Xóa thực đơn tuần thành công"); 
             } catch (error) {
-              const message =
-                error instanceof Error ? error.message : "Không thể xóa thực đơn tuần";
+              const message = error instanceof Error ? error.message : "Không thể xóa thực đơn tuần";
               showMessage(message);
             }
           },
@@ -430,12 +441,15 @@ export function useMealPlanUI() {
   const clearDayPlan = useCallback(
     async (date: string) => {
       try {
-        await clearMealPlanDayApi({ date });
+        // Lưu response từ API
+        const response = await clearMealPlanDayApi({ date });
+        
         await loadWeek(weekData?.start_date || date);
-        showMessage("Xóa thực đơn ngày thành công");
+        
+        // Hiển thị message: "Thực đơn ngày đã trống" hoặc "Xóa thực đơn ngày thành công"
+        showMessage(response.message || "Xóa thực đơn ngày thành công");
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Không thể xóa thực đơn ngày";
+        const message = error instanceof Error ? error.message : "Không thể xóa thực đơn ngày";
         showMessage(message);
       }
     },
@@ -446,11 +460,11 @@ export function useMealPlanUI() {
     (date: string) => {
       Alert.alert(
         "Xóa thực đơn ngày",
-        "Bạn có chắc muốn xóa toàn bộ món ăn trong ngày này?",
+        `Bạn có chắc chắn muốn xóa thực đơn ngày ${formatDateLabel(date)} không?`,
         [
           { text: "Hủy", style: "cancel" },
           {
-            text: "Xóa",
+            text: "Đồng ý",
             style: "destructive",
             onPress: () => clearDayPlan(date),
           },
@@ -836,6 +850,14 @@ export function useMealPlanUI() {
 
               const response = await generateWeekShoppingList(weekData.start_date);
 
+              if (!response.success) {
+                Alert.alert(
+                  "Thông báo",
+                  response.message || "Danh sách mua sắm tuần này đã tồn tại"
+                );
+                return;
+              }
+
               Alert.alert(
                 "Thành công",
                 response.message || "Đã tạo danh sách mua sắm tuần"
@@ -876,6 +898,14 @@ export function useMealPlanUI() {
                 setCreatingDayShoppingDate(date);
 
                 const response = await generateDayShoppingList(date);
+
+                if (!response.success) {
+                Alert.alert(
+                    "Thông báo",
+                    response.message || "Danh sách mua sắm ngày này đã tồn tại"
+                  );
+                  return;
+                }
 
                 Alert.alert(
                   "Thành công",

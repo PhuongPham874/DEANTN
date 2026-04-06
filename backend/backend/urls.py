@@ -27,6 +27,7 @@ urlpatterns = [
     path("api/", include("mealplan.urls")),
     path("api/", include("inventory.urls")),
     path("api/", include("shoppinglist.urls")),
+    path("api/chatbot/", include("chatbot.urls")),
 ]
 
 if settings.DEBUG:

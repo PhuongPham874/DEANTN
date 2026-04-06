@@ -37,7 +37,7 @@ class RegisterSerializer(serializers.Serializer):
         if not is_password_valid(value):
             # Business rule
             raise serializers.ValidationError(
-                "Mật khẩu phải tối thiểu 8 ký tự, chứa chữ cái và số."
+                "Vui lòng nhập đúng định dạng bao gồm: >=8 ký tự, chứa chữ cái và số."
             )
         return value
 

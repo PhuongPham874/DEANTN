@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'home',
     'mealplan',
     'inventory',
-    'shoppinglist'
+    'shoppinglist',
+    'chatbot'
 ]
 
 MIDDLEWARE = [
@@ -107,6 +108,8 @@ EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = "apikey"
 EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # URL dùng để truy cập file từ trình duyệt (ví dụ: http://127.0.0.1:8000/media/anh.jpg)
 MEDIA_URL = '/media/'

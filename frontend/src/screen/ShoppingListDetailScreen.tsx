@@ -3,17 +3,26 @@ import {
   ActivityIndicator,
   FlatList,
   ListRenderItem,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
 
 import IngredientModal from "@/components/individualDishForm/IngredientModal";
 import ShoppingItemCard from "@/components/shopping/ShoppingItemCard";
 import { useShoppingListDetailUI } from "@/src/hooks/useShoppingListDetailUI";
+
+const BG = "#E2EDE5";
+const PRIMARY = "#3E9300";
+const WHITE = "#FFFFFF";
+const TEXT = "#2F2F2F";
+const MUTED = "#6B7280";
+const BORDER = "#CFE0D3";
+const ERROR = "#D93A3A";
 
 function formatDate(dateString?: string) {
   if (!dateString) return "";
@@ -26,31 +35,34 @@ type RowItem =
   | { type: "empty"; key: string };
 
 export default function ShoppingListDetailScreen() {
+  const insets = useSafeAreaInsets();
+
   const {
-  detail,
-  loading,
-  error,
-  pendingItems,
-  boughtItems,
-  submittingItemId,
-  deletingItemId,
-  modalVisible,
-  draft,
-  draftErrors,
-  unitOptions,
-  groupOptions,
-  categoryOptions,
-  onBack,
-  reload,
-  onToggleStatus,
-  onDeleteItem,
-  openCreateModal,
-  closeModal,
-  onChangeDraft,
-  onSaveDraft,
-  addingToInventory,
-  onAddBoughtItemsToInventory,
-} = useShoppingListDetailUI();
+    detail,
+    loading,
+    error,
+    pendingItems,
+    boughtItems,
+    submittingItemId,
+    deletingItemId,
+    modalVisible,
+    draft,
+    draftErrors,
+    unitOptions,
+    groupOptions,
+    categoryOptions,
+    onBack,
+    reload,
+    onToggleStatus,
+    onDeleteItem,
+    openCreateModal,
+    closeModal,
+    onChangeDraft,
+    onSaveDraft,
+    addingToInventory,
+    onAddBoughtItemsToInventory,
+  } = useShoppingListDetailUI();
+
   const data: RowItem[] = React.useMemo(() => {
     const rows: RowItem[] = [
       {
@@ -162,7 +174,7 @@ export default function ShoppingListDetailScreen() {
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Ionicons name="chevron-back" size={18} color="#5D9722" />
+          <Ionicons name="chevron-back" size={18} color={PRIMARY} />
         </TouchableOpacity>
 
         <View style={styles.headerTextWrap}>
@@ -177,7 +189,7 @@ export default function ShoppingListDetailScreen() {
 
       {loading ? (
         <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color="#6B9D2E" />
+          <ActivityIndicator size="large" color={PRIMARY} />
         </View>
       ) : error ? (
         <View style={styles.centerBox}>
@@ -192,11 +204,17 @@ export default function ShoppingListDetailScreen() {
             data={data}
             keyExtractor={(item) => item.key}
             renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: insets.bottom + 108 },
+            ]}
             showsVerticalScrollIndicator={false}
           />
 
-          <TouchableOpacity style={styles.fab} onPress={openCreateModal}>
+          <TouchableOpacity
+            style={[styles.fab, { bottom: insets.bottom + 20 }]}
+            onPress={openCreateModal}
+          >
             <Ionicons name="add" size={30} color="#FFF" />
           </TouchableOpacity>
         </>
@@ -220,26 +238,26 @@ export default function ShoppingListDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#DDE5DE",
+    backgroundColor: BG,
   },
 
   header: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 16,
     marginBottom: 18,
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 21,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1.5,
-    borderColor: "#5D9722",
+    borderColor: PRIMARY,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
-    backgroundColor: "transparent",
+    backgroundColor: WHITE,
   },
   headerTextWrap: {
     flex: 1,
@@ -247,19 +265,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#5D9722",
+    color: PRIMARY,
     letterSpacing: 0.3,
     marginBottom: 6,
     flexShrink: 1,
   },
   createdDate: {
     fontSize: 12,
-    color: "#444",
+    color: MUTED,
   },
 
   listContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 120,
+    paddingHorizontal: 16,
   },
 
   sectionHeader: {
@@ -275,7 +292,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    color: "#777",
+    color: PRIMARY,
+    fontWeight: "600",
     flexShrink: 1,
   },
 
@@ -287,7 +305,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#6B9D2E",
+    backgroundColor: PRIMARY,
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 36,
@@ -302,13 +320,15 @@ const styles = StyleSheet.create({
 
   itemCard: {
     width: "100%",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: WHITE,
     borderRadius: 18,
     paddingVertical: 16,
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -326,7 +346,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 1.5,
-    borderColor: "#222",
+    borderColor: PRIMARY,
   },
   itemContent: {
     flex: 1,
@@ -336,7 +356,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 17,
     fontWeight: "800",
-    color: "#383838",
+    color: TEXT,
     marginBottom: 8,
     flexShrink: 1,
   },
@@ -356,17 +376,16 @@ const styles = StyleSheet.create({
   },
   itemMeta: {
     fontSize: 14,
-    color: "#9A9A9A",
+    color: MUTED,
   },
 
   fab: {
     position: "absolute",
-    right: 24,
-    bottom: 28,
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: "#6B9D2E",
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: PRIMARY,
     alignItems: "center",
     justifyContent: "center",
     elevation: 6,
@@ -374,6 +393,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
+    ...(Platform.OS === "ios" ? { overflow: "visible" } : {}),
   },
 
   centerBox: {
@@ -383,13 +403,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   errorText: {
-    color: "#D93A3A",
+    color: ERROR,
     fontSize: 15,
     textAlign: "center",
     marginBottom: 12,
   },
   retryBtn: {
-    backgroundColor: "#6B9D2E",
+    backgroundColor: PRIMARY,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
@@ -404,7 +424,7 @@ const styles = StyleSheet.create({
     paddingTop: 36,
   },
   emptyText: {
-    color: "#777",
+    color: MUTED,
     fontSize: 15,
     textAlign: "center",
   },

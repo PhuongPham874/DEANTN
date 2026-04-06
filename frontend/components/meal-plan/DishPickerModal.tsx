@@ -181,7 +181,7 @@ export default function DishPickerModal({
                 );
               }}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>Chưa có món ăn nào để thêm</Text>
+                <Text style={styles.emptyText}>Không tìm thấy món ăn phù hợp</Text>
               }
             />
           )}
