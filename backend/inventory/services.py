@@ -1,5 +1,7 @@
 from django.db import transaction
 
+from rest_framework.exceptions import ValidationError
+
 from home.services import IngredientInputService, IngredientMergeHelper
 from shoppinglist.services import ShoppingListService
 from shoppinglist.models import ShoppingList, ShoppingItem
@@ -112,24 +114,52 @@ class FoodInventoryService:
             "message": "Lấy chi tiết nguyên liệu trong kho thành công",
             "data": FoodInventoryService._build_food_inventory_item(item),
         }
+    
+    @staticmethod
+    def _validate_inventory_metadata_from_input(validated_data, matched_item):
+        if not matched_item:
+            return
+
+        errors = {}
+
+        input_group_name = (validated_data.get("group_name") or "").strip()
+        matched_group_name = (matched_item.ingredient.group_name or "").strip()
+
+        input_category = (validated_data.get("category") or "").strip()
+        matched_category = (matched_item.ingredient.category or "").strip()
+
+        if input_group_name != matched_group_name:
+            errors["group_name"] = (
+                "Nguyên liệu này đã được lưu với nhóm nguyên liệu khác."
+            )
+
+        if input_category != matched_category:
+            errors["category"] = (
+                "Nguyên liệu này đã được lưu với loại nguyên liệu khác."
+            )
+
+        if errors:
+            raise ValidationError(errors)
 
     @staticmethod
     @transaction.atomic
     def create_food_inventory(user, validated_data):
-        ingredient, _, normalized_data = IngredientInputService.get_or_create_ingredient(
-            validated_data
-        )
-
-        quantity = normalized_data["quantity"]
-        unit = normalized_data["unit"]
+        quantity = validated_data["quantity"]
+        unit = validated_data["unit"]
+        ingredient_name = (validated_data.get("ingredient_name") or "").strip()
 
         mergeable_item = FoodInventoryService._find_mergeable_inventory_item(
             user=user,
-            ingredient_name=ingredient.ingredient_name,
+            ingredient_name=ingredient_name,
             unit=unit,
         )
 
         if mergeable_item:
+            FoodInventoryService._validate_inventory_metadata_from_input(
+                validated_data=validated_data,
+                matched_item=mergeable_item,
+            )
+
             merged_item = FoodInventoryService._merge_inventory_quantity(
                 existing_item=mergeable_item,
                 quantity=quantity,
@@ -142,11 +172,15 @@ class FoodInventoryService:
                     "data": FoodInventoryService._build_food_inventory_item(merged_item),
                 }
 
+        ingredient, _, normalized_data = IngredientInputService.get_or_create_ingredient(
+            validated_data
+        )
+
         item = FoodInventory.objects.create(
             user=user,
             ingredient=ingredient,
-            quantity=quantity,
-            unit=unit,
+            quantity=normalized_data["quantity"],
+            unit=normalized_data["unit"],
         )
 
         return {

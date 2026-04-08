@@ -9,7 +9,6 @@ from .views import (
     shopping_item_toggle_status_view,
     shopping_item_delete_view,
     shopping_item_create_view,
-    shopping_item_update_view,
 )
 
 urlpatterns = [
@@ -21,5 +20,4 @@ urlpatterns = [
     path("shopping/shopping-lists/items/toggle-status/", shopping_item_toggle_status_view, name="shopping-item-toggle-status"),
     path("shopping/shopping-lists/items/delete/", shopping_item_delete_view, name="shopping-item-delete"),
     path("shopping/shopping-lists/items/create/", shopping_item_create_view, name="shopping-item-create"),
-    path("shopping/shopping-lists/items/update/", shopping_item_update_view, name="shopping-item-update"),
 ]

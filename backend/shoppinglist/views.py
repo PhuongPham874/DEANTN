@@ -48,8 +48,20 @@ def shopping_list_generate_week_view(request):
         week_start=serializer.validated_data["start_date"],
     )
 
+    if not result["success"]:
+        return Response(
+            {
+                "message": result["message"],
+                "data": None,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_201_CREATED,
     )
 
@@ -65,8 +77,20 @@ def shopping_list_generate_day_view(request):
         target_date=serializer.validated_data["date"],
     )
 
+    if not result["success"]:
+        return Response(
+            {
+                "message": result["message"],
+                "data": None,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_201_CREATED,
     )
 
@@ -83,10 +107,19 @@ def shopping_list_detail_view(request):
     )
 
     if not result["success"]:
-        return Response({"message": result["message"], "data": None}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {
+                "message": result["message"],
+                "data": None,
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_200_OK,
     )
 
@@ -103,10 +136,19 @@ def shopping_list_delete_view(request):
     )
 
     if not result["success"]:
-        return Response({"message": result["message"], "data": None}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {
+                "message": result["message"],
+                "data": None,
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_200_OK,
     )
 
@@ -123,10 +165,19 @@ def shopping_item_toggle_status_view(request):
     )
 
     if not result["success"]:
-        return Response({"message": result["message"], "data": None}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {
+                "message": result["message"],
+                "data": None,
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_200_OK,
     )
 
@@ -143,10 +194,19 @@ def shopping_item_delete_view(request):
     )
 
     if not result["success"]:
-        return Response({"message": result["message"], "data": None}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {
+                "message": result["message"],
+                "data": None,
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_200_OK,
     )
 
@@ -163,29 +223,21 @@ def shopping_item_create_view(request):
     )
 
     if not result["success"]:
-        return Response({"message": result["message"], "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {
+                "message": result["message"],
+                "errors": result.get("errors", {}),
+                "data": None,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     return Response(
-        {"message": result["message"], "data": result["data"]},
+        {
+            "message": result["message"],
+            "data": result["data"],
+        },
         status=status.HTTP_201_CREATED,
     )
 
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def shopping_item_update_view(request):
-    serializer = ShoppingItemUpdateSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    result = ShoppingListService.update_shopping_item(
-        user=request.user,
-        validated_data=serializer.validated_data,
-    )
-
-    if not result["success"]:
-        return Response({"message": result["message"], "data": None}, status=status.HTTP_404_NOT_FOUND)
-
-    return Response(
-        {"message": result["message"], "data": result["data"]},
-        status=status.HTTP_200_OK,
-    )

@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   smallRedButton: {
-    flex: 1.15,
+    flex: 1.25,
     minHeight: 38,
     borderRadius: 8,
     backgroundColor: RED,

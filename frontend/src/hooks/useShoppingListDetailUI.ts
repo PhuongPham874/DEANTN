@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 
 import {
+  ApiError,
   createShoppingItem,
   deleteShoppingItem,
   getShoppingListDetail,
@@ -44,8 +45,11 @@ const categoryOptions: OptionItem[] = [
   { label: "Gia vị", value: "gia vị" },
 ];
 
-function normalizeError(error: any) {
-  return error?.message || "Đã có lỗi xảy ra";
+function normalizeError(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return "Đã có lỗi xảy ra";
 }
 
 function createInitialDraft(): DraftState {
@@ -56,6 +60,47 @@ function createInitialDraft(): DraftState {
     group_name: "",
     category: "",
   };
+}
+
+function getFirstErrorMessage(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    const first = value.find((item) => typeof item === "string");
+    return typeof first === "string" ? first : undefined;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return undefined;
+}
+
+function mapFieldErrors(error: unknown): DraftErrors {
+  const apiError = error as ApiError | undefined;
+
+  const rawErrors =
+    apiError?.errors ||
+    (apiError?.responseData?.errors as Record<string, unknown> | undefined) ||
+    (apiError?.responseData as Record<string, unknown> | undefined) ||
+    {};
+
+  return {
+    ingredient_name: getFirstErrorMessage(
+      rawErrors.ingredient_name ?? rawErrors.name
+    ),
+    quantity: getFirstErrorMessage(rawErrors.quantity),
+    unit: getFirstErrorMessage(rawErrors.unit),
+    group_name: getFirstErrorMessage(
+      rawErrors.group_name ?? rawErrors.ingredient_group ?? rawErrors.group
+    ),
+    category: getFirstErrorMessage(
+      rawErrors.category ?? rawErrors.ingredient_type ?? rawErrors.type
+    ),
+  };
+}
+
+function hasAnyFieldError(errors: DraftErrors) {
+  return Object.values(errors).some(Boolean);
 }
 
 export function useShoppingListDetailUI() {
@@ -108,7 +153,7 @@ export function useShoppingListDetailUI() {
 
         const response = await getShoppingListDetail(shoppingId);
         setDetail(response.data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(normalizeError(err));
       } finally {
         if (showLoading) setLoading(false);
@@ -189,20 +234,28 @@ export function useShoppingListDetailUI() {
 
     try {
       setSavingDraft(true);
+      setDraftErrors({});
 
       await createShoppingItem(detail.shopping_id, {
         ingredient_name: draft.ingredient_name.trim(),
         quantity: Number(draft.quantity),
         unit: draft.unit.trim(),
-        group_name: draft.group_name,
-        category: draft.category,
+        group_name: draft.group_name.trim(),
+        category: draft.category.trim(),
       });
 
       setModalVisible(false);
       setDraft(createInitialDraft());
       setDraftErrors({});
       await fetchDetail(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const nextFieldErrors = mapFieldErrors(err);
+
+      if (hasAnyFieldError(nextFieldErrors)) {
+        setDraftErrors(nextFieldErrors);
+        return;
+      }
+
       Alert.alert("Thông báo", normalizeError(err));
     } finally {
       setSavingDraft(false);
@@ -215,7 +268,7 @@ export function useShoppingListDetailUI() {
         setSubmittingItemId(itemId);
         await toggleShoppingItemStatus(itemId);
         await fetchDetail(false);
-      } catch (err: any) {
+      } catch (err: unknown) {
         Alert.alert("Thông báo", normalizeError(err));
       } finally {
         setSubmittingItemId(null);
@@ -225,9 +278,9 @@ export function useShoppingListDetailUI() {
   );
 
   const handleAfterDeleteShoppingItem = useCallback(
-    async (shoppingId: number) => {
+    async (currentShoppingId: number) => {
       try {
-        const response = await getShoppingListDetail(shoppingId);
+        const response = await getShoppingListDetail(currentShoppingId);
         const data = response.data;
 
         const totalItems =
@@ -239,18 +292,17 @@ export function useShoppingListDetailUI() {
         }
 
         setDetail(data);
-      } catch (error) {
+      } catch {
         router.replace("/shopping");
       }
     },
     [router]
   );
 
-
   const onDeleteItem = useCallback(
     (itemId: number) => {
       const item = [...(detail?.pending_items || []), ...(detail?.bought_items || [])]
-        .find(i => i.item_id === itemId);
+        .find((i) => i.item_id === itemId);
 
       const ingredientName = item?.ingredient_name || "nguyên liệu này";
 
@@ -267,13 +319,13 @@ export function useShoppingListDetailUI() {
                 setDeletingItemId(itemId);
                 await deleteShoppingItem(itemId);
                 await fetchDetail(false);
-                Alert.alert("Thành công", `Xóa nguyên liệu khỏi danh sách thành công`);
-                if (detail?.shopping_id) {
-                await handleAfterDeleteShoppingItem(detail.shopping_id);
-              }
+                Alert.alert("Thành công", "Xóa nguyên liệu khỏi danh sách thành công");
 
-              } catch (err: any) {
-                Alert.alert("Thông báo", normalizeError(err)); 
+                if (detail?.shopping_id) {
+                  await handleAfterDeleteShoppingItem(detail.shopping_id);
+                }
+              } catch (err: unknown) {
+                Alert.alert("Thông báo", normalizeError(err));
               } finally {
                 setDeletingItemId(null);
               }
@@ -282,77 +334,78 @@ export function useShoppingListDetailUI() {
         ]
       );
     },
-    [detail, fetchDetail]
+    [detail, fetchDetail, handleAfterDeleteShoppingItem]
   );
+
   const onAddBoughtItemsToInventory = useCallback(() => {
-  if (!detail) return;
+    if (!detail) return;
 
-  Alert.alert(
-    "Xác nhận",
-    "Bạn có chắc chắn muốn cập nhật các nguyên liệu đã mua vào kho?",
-    [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Đồng ý",
-        onPress: async () => {
-          try {
-            setAddingToInventory(true);
+    Alert.alert(
+      "Xác nhận",
+      "Bạn có chắc chắn muốn cập nhật các nguyên liệu đã mua vào kho?",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Đồng ý",
+          onPress: async () => {
+            try {
+              setAddingToInventory(true);
 
-            const response = await addBoughtItemsToInventory(detail.shopping_id);
+              const response = await addBoughtItemsToInventory(detail.shopping_id);
 
-            Alert.alert(
-              "Thông báo",
-              response.message || "Đã cập nhật nguyên liệu vào kho thực phẩm"
-            );
+              Alert.alert(
+                "Thông báo",
+                response.message || "Đã cập nhật nguyên liệu vào kho thực phẩm"
+              );
 
-            await fetchDetail(false);
-            router.replace("/inventory");
-          } catch (err: any) {
-            Alert.alert("Thông báo", normalizeError(err));
-          } finally {
-            setAddingToInventory(false);
-          }
+              await fetchDetail(false);
+              router.replace("/inventory");
+            } catch (err: unknown) {
+              Alert.alert("Thông báo", normalizeError(err));
+            } finally {
+              setAddingToInventory(false);
+            }
+          },
         },
-      },
-    ]
-  );
-}, [detail, fetchDetail]);
+      ]
+    );
+  }, [detail, fetchDetail, router]);
 
   const pendingItems = useMemo(() => detail?.pending_items ?? [], [detail]);
   const boughtItems = useMemo(() => detail?.bought_items ?? [], [detail]);
 
-return {
-  shoppingId,
-  detail,
-  loading,
-  error,
+  return {
+    shoppingId,
+    detail,
+    loading,
+    error,
 
-  pendingItems,
-  boughtItems,
+    pendingItems,
+    boughtItems,
 
-  submittingItemId,
-  deletingItemId,
+    submittingItemId,
+    deletingItemId,
 
-  modalVisible,
-  draft,
-  draftErrors,
-  savingDraft,
-  unitOptions,
-  groupOptions,
-  categoryOptions,
+    modalVisible,
+    draft,
+    draftErrors,
+    savingDraft,
+    unitOptions,
+    groupOptions,
+    categoryOptions,
 
-  onBack,
-  reload: fetchDetail,
+    onBack,
+    reload: fetchDetail,
 
-  onToggleStatus,
-  onDeleteItem,
+    onToggleStatus,
+    onDeleteItem,
 
-  openCreateModal,
-  closeModal,
-  onChangeDraft,
-  onSaveDraft,
+    openCreateModal,
+    closeModal,
+    onChangeDraft,
+    onSaveDraft,
 
-  addingToInventory,
-  onAddBoughtItemsToInventory,
-};
+    addingToInventory,
+    onAddBoughtItemsToInventory,
+  };
 }

@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.db import transaction
+from rest_framework.exceptions import ValidationError
 from django.db.models import Sum
 
 from home.models import DishDetail
@@ -138,11 +139,16 @@ class ShoppingListService:
         }
 
     @staticmethod
-    def _find_mergeable_item(shopping_list, ingredient, unit, exclude_item_id=None):
+    def _find_mergeable_item(
+        shopping_list,
+        ingredient_name,
+        unit,
+        exclude_item_id=None,
+    ):
         queryset = (
             ShoppingItem.objects.filter(
                 shopping=shopping_list,
-                ingredient__ingredient_name__iexact=(ingredient.ingredient_name or "").strip(),
+                ingredient__ingredient_name__iexact=(ingredient_name or "").strip(),
             )
             .select_related("ingredient")
             .order_by("item_id")
@@ -156,36 +162,10 @@ class ShoppingListService:
         for existing_item in queryset:
             existing_unit = IngredientMergeHelper.normalize_unit(existing_item.unit)
 
-            if not IngredientMergeHelper.can_merge(existing_unit, normalized_unit):
-                continue
+            if IngredientMergeHelper.can_merge(existing_unit, normalized_unit):
+                return existing_item
 
-            existing_ingredient = existing_item.ingredient
-
-            existing_category_name = (getattr(existing_ingredient, "category_name", None) or "").strip().lower()
-            new_category_name = (getattr(ingredient, "category_name", None) or "").strip().lower()
-
-            existing_type = (getattr(existing_ingredient, "group", None) or "").strip().lower()
-            new_type = (getattr(ingredient, "group", None) or "").strip().lower()
-
-            if existing_category_name == new_category_name and existing_type == new_type:
-                return {
-                    "status": "mergeable",
-                    "item": existing_item,
-                }
-
-            return {
-                "status": "conflict",
-                "item": existing_item,
-                "errors": {
-                    "ingredient_group": ["Vui lòng kiểm tra lại"],
-                    "ingredient_type": ["Vui lòng kiểm tra lại"],
-                },
-            }
-
-        return {
-            "status": "none",
-            "item": None,
-        }
+        return None
 
     @staticmethod
     def _merge_item_quantity(existing_item, quantity, unit):
@@ -487,6 +467,11 @@ class ShoppingListService:
     @transaction.atomic
     def create_shopping_item(user, validated_data):
         shopping_id = validated_data["shopping_id"]
+        quantity = validated_data["quantity"]
+        unit = validated_data["unit"]
+        ingredient_name = (validated_data.get("ingredient_name") or "").strip()
+        
+        from inventory.services import FoodInventoryService
 
         shopping_list = ShoppingList.objects.filter(
             shopping_id=shopping_id,
@@ -497,30 +482,32 @@ class ShoppingListService:
             return {
                 "success": False,
                 "message": "Không tìm thấy danh sách mua sắm",
+                "errors": {},
                 "data": None,
             }
 
-        ingredient, _, normalized_data = IngredientInputService.get_or_create_ingredient(validated_data)
-        quantity = normalized_data["quantity"]
-        unit = normalized_data["unit"]
-
-        merge_result = ShoppingListService._find_mergeable_item(
+        mergeable_item = ShoppingListService._find_mergeable_item(
             shopping_list=shopping_list,
-            ingredient=ingredient,
+            ingredient_name=ingredient_name,
             unit=unit,
         )
 
-        if merge_result["status"] == "conflict":
-            return {
-                "success": False,
-                "message": "Vui lòng kiểm tra lại",
-                "errors": merge_result["errors"],
-                "data": None,
-            }
+        if mergeable_item:
+            try:
+                FoodInventoryService._validate_inventory_metadata_from_input(
+                    validated_data=validated_data,
+                    matched_item=mergeable_item,
+                )
+            except ValidationError as exc:
+                return {
+                    "success": False,
+                    "message": "Vui lòng kiểm tra lại thông tin",
+                    "errors": exc.detail,
+                    "data": None,
+                }
 
-        if merge_result["status"] == "mergeable":
-            merged_item = ShoppingListService._merge_item_quantity(
-                existing_item=merge_result["item"],
+            merged_item = ShoppingListService._merge_shopping_item_quantity(
+                existing_item=mergeable_item,
                 quantity=quantity,
                 unit=unit,
             )
@@ -528,102 +515,27 @@ class ShoppingListService:
                 return {
                     "success": True,
                     "message": "Thêm nguyên liệu vào danh sách mua sắm thành công",
-                    "data": ShoppingListService._build_shopping_item_detail(merged_item),
+                    "data": ShoppingListService._build_shopping_item(merged_item),
                 }
-
-        first_item = shopping_list.items.order_by("item_id").first()
-        if not first_item:
-            return {
-                "success": False,
-                "message": "Danh sách mua sắm chưa có plan để thêm mục mới",
-                "data": None,
-            }
+        
+        ingredient, _, normalized_data = FoodInventoryService.get_or_create_ingredient(
+            validated_data
+        )
 
         item = ShoppingItem.objects.create(
             shopping=shopping_list,
-            plan=first_item.plan,
             ingredient=ingredient,
-            quantity=quantity,
-            unit=unit,
-            status="pending",
+            quantity=normalized_data["quantity"],
+            unit=normalized_data["unit"],
         )
 
         return {
             "success": True,
             "message": "Thêm nguyên liệu vào danh sách mua sắm thành công",
-            "data": ShoppingListService._build_shopping_item_detail(item),
+            "data": ShoppingListService._build_shopping_item(item),
         }
 
-    @staticmethod
-    @transaction.atomic
-    def update_shopping_item(user, validated_data):
-        item_id = validated_data["item_id"]
-
-        item = (
-            ShoppingItem.objects.filter(
-                item_id=item_id,
-                shopping__user=user,
-            )
-            .select_related("ingredient", "shopping", "plan")
-            .first()
-        )
-
-        if not item:
-            return {
-                "success": False,
-                "message": "Không tìm thấy mục mua sắm",
-                "data": None,
-            }
-
-        ingredient, _, normalized_data = IngredientInputService.get_or_create_ingredient(validated_data)
-        quantity = normalized_data["quantity"]
-        unit = normalized_data["unit"]
-
-        merge_result = ShoppingListService._find_mergeable_item(
-            shopping_list=item.shopping,
-            ingredient=ingredient,
-            unit=unit,
-            exclude_item_id=item.item_id,
-        )
-
-        if merge_result["status"] == "conflict":
-            return {
-                "success": False,
-                "message": "Vui lòng kiểm tra lại",
-                "errors": merge_result["errors"],
-                "data": None,
-            }
-
-        if merge_result["status"] == "mergeable":
-            merged_item = ShoppingListService._merge_item_quantity(
-                existing_item=merge_result["item"],
-                quantity=quantity,
-                unit=unit,
-            )
-
-            if merged_item:
-                old_item_id = item.item_id
-                item.delete()
-
-                return {
-                    "success": True,
-                    "message": "Cập nhật mục mua sắm thành công",
-                    "data": {
-                        **ShoppingListService._build_shopping_item_detail(merged_item),
-                        "merged_from_item_id": old_item_id,
-                    },
-                }
-
-        item.ingredient = ingredient
-        item.quantity = quantity
-        item.unit = unit
-        item.save(update_fields=["ingredient", "quantity", "unit"])
-
-        return {
-            "success": True,
-            "message": "Cập nhật mục mua sắm thành công",
-            "data": ShoppingListService._build_shopping_item_detail(item),
-        }
+    
     @staticmethod
     def _get_inventory_quantity_map(user, items):
         ingredient_ids = list({item.ingredient_id for item in items})

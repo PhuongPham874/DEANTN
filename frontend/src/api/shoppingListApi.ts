@@ -75,6 +75,42 @@ export type UpsertShoppingItemPayload = {
   category: string;
 };
 
+export type ShoppingFieldName =
+  | "ingredient_name"
+  | "quantity"
+  | "unit"
+  | "group_name"
+  | "category";
+
+export type FieldErrorMap = Partial<
+  Record<ShoppingFieldName, string | string[]>
+>;
+
+type ErrorResponseShape = {
+  message?: string;
+  errors?: FieldErrorMap;
+  data?: unknown;
+  [key: string]: unknown;
+};
+
+export class ApiError extends Error {
+  errors?: FieldErrorMap;
+  responseData?: ErrorResponseShape;
+
+  constructor(
+    message: string,
+    options?: {
+      errors?: FieldErrorMap;
+      responseData?: ErrorResponseShape;
+    }
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.errors = options?.errors;
+    this.responseData = options?.responseData;
+  }
+}
+
 export type CreateShoppingItemResponse = {
   message: string;
   data: {
@@ -120,6 +156,69 @@ async function parseJsonSafely(response: Response) {
   }
 }
 
+function extractFieldErrors(source: any): FieldErrorMap | undefined {
+  if (!source || typeof source !== "object") {
+    return undefined;
+  }
+
+  const keys: ShoppingFieldName[] = [
+    "ingredient_name",
+    "quantity",
+    "unit",
+    "group_name",
+    "category",
+  ];
+
+  const extracted: FieldErrorMap = {};
+
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" || Array.isArray(value)) {
+      extracted[key] = value;
+    }
+  }
+
+  return Object.keys(extracted).length > 0 ? extracted : undefined;
+}
+
+function pickFieldErrors(data: any): FieldErrorMap | undefined {
+  if (!data || typeof data !== "object") {
+    return undefined;
+  }
+
+  if (data.errors && typeof data.errors === "object") {
+    return extractFieldErrors(data.errors);
+  }
+
+  if (data.data && typeof data.data === "object") {
+    const nestedErrors = extractFieldErrors(data.data);
+    if (nestedErrors) {
+      return nestedErrors;
+    }
+  }
+
+  return extractFieldErrors(data);
+}
+
+function buildApiError(data: any, fallbackMessage: string): ApiError {
+  const errors = pickFieldErrors(data);
+  const message =
+    data?.message ||
+    (hasAnyFieldError(errors) ? "Vui lòng kiểm tra lại thông tin" : fallbackMessage);
+
+  return new ApiError(message, {
+    errors,
+    responseData: data,
+  });
+}
+
+function hasAnyFieldError(errors?: FieldErrorMap) {
+  if (!errors) return false;
+  return Object.values(errors).some((value) =>
+    Array.isArray(value) ? value.length > 0 : Boolean(value)
+  );
+}
+
 export async function getShoppingLists({
   search = "",
 }: GetShoppingListsParams = {}): Promise<ShoppingListsResponse> {
@@ -141,7 +240,7 @@ export async function getShoppingLists({
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể tải danh sách mua sắm");
+    throw buildApiError(data, "Không thể tải danh sách mua sắm");
   }
 
   return data as ShoppingListsResponse;
@@ -164,7 +263,7 @@ export async function getShoppingListDetail(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể tải chi tiết danh sách mua sắm");
+    throw buildApiError(data, "Không thể tải chi tiết danh sách mua sắm");
   }
 
   return data as ShoppingListDetailResponse;
@@ -186,7 +285,7 @@ export async function deleteShoppingList(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể xóa danh sách mua sắm");
+    throw buildApiError(data, "Không thể xóa danh sách mua sắm");
   }
 
   return data as DeleteShoppingListResponse;
@@ -208,7 +307,7 @@ export async function toggleShoppingItemStatus(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể cập nhật trạng thái mua sắm");
+    throw buildApiError(data, "Không thể cập nhật trạng thái mua sắm");
   }
 
   return data as ToggleShoppingItemStatusResponse;
@@ -230,7 +329,7 @@ export async function deleteShoppingItem(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể xóa mục mua sắm");
+    throw buildApiError(data, "Không thể xóa mục mua sắm");
   }
 
   return data as DeleteShoppingItemResponse;
@@ -254,7 +353,10 @@ export async function createShoppingItem(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể thêm nguyên liệu vào danh sách mua sắm");
+    throw buildApiError(
+      data,
+      "Không thể thêm nguyên liệu vào danh sách mua sắm"
+    );
   }
 
   return data as CreateShoppingItemResponse;
@@ -278,7 +380,7 @@ export async function updateShoppingItem(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể cập nhật mục mua sắm");
+    throw buildApiError(data, "Không thể cập nhật mục mua sắm");
   }
 
   return data as UpdateShoppingItemResponse;
@@ -300,7 +402,7 @@ export async function generateWeekShoppingList(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể tạo danh sách mua sắm tuần");
+    throw buildApiError(data, "Không thể tạo danh sách mua sắm tuần");
   }
 
   return data as GenerateShoppingListResponse;
@@ -322,7 +424,7 @@ export async function generateDayShoppingList(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể tạo danh sách mua sắm ngày");
+    throw buildApiError(data, "Không thể tạo danh sách mua sắm ngày");
   }
 
   return data as GenerateShoppingListResponse;

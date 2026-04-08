@@ -60,20 +60,103 @@ export type AddBoughtItemsToInventoryResponse = {
     merged_count: number;
     moved_item_count: number;
     processed_item_ids: number[];
+    shopping_deleted?: boolean;
   };
 };
+
+export type FoodInventoryFieldName =
+  | "ingredient_name"
+  | "quantity"
+  | "unit"
+  | "group_name"
+  | "category";
+
+export type ApiFieldErrors = Partial<
+  Record<FoodInventoryFieldName, string | string[]>
+>;
+
+type ErrorResponseShape = {
+  message?: string;
+  errors?: ApiFieldErrors;
+  data?: unknown;
+  [key: string]: unknown;
+};
+
+export class ApiValidationError extends Error {
+  fields?: ApiFieldErrors;
+  responseData?: ErrorResponseShape;
+
+  constructor(
+    message: string,
+    options?: {
+      fields?: ApiFieldErrors;
+      responseData?: ErrorResponseShape;
+    }
+  ) {
+    super(message);
+    this.name = "ApiValidationError";
+    this.fields = options?.fields;
+    this.responseData = options?.responseData;
+  }
+}
 
 type GetFoodInventoryParams = {
   search?: string;
   group_name?: string;
 };
 
-async function parseJsonSafely(response: Response) {
+async function parseJsonSafely(response: Response): Promise<any> {
   try {
     return await response.json();
   } catch {
     return {};
   }
+}
+
+function pickFieldErrors(data: any): ApiFieldErrors | undefined {
+  if (!data || typeof data !== "object") {
+    return undefined;
+  }
+
+  if (data.errors && typeof data.errors === "object") {
+    return data.errors as ApiFieldErrors;
+  }
+
+  const candidateKeys: FoodInventoryFieldName[] = [
+    "ingredient_name",
+    "quantity",
+    "unit",
+    "group_name",
+    "category",
+  ];
+
+  const extracted: ApiFieldErrors = {};
+
+  for (const key of candidateKeys) {
+    const value = data[key];
+    if (typeof value === "string" || Array.isArray(value)) {
+      extracted[key] = value;
+    }
+  }
+
+  return Object.keys(extracted).length > 0 ? extracted : undefined;
+}
+
+function buildApiError(
+  data: any,
+  fallbackMessage: string
+): ApiValidationError | Error {
+  const message = data?.message || fallbackMessage;
+  const fields = pickFieldErrors(data);
+
+  if (fields) {
+    return new ApiValidationError(message, {
+      fields,
+      responseData: data,
+    });
+  }
+
+  return new Error(message);
 }
 
 export async function getFoodInventoryList({
@@ -102,7 +185,7 @@ export async function getFoodInventoryList({
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể tải danh sách nguyên liệu");
+    throw buildApiError(data, "Không thể tải danh sách nguyên liệu");
   }
 
   return data as FoodInventoryListResponse;
@@ -125,7 +208,7 @@ export async function getFoodInventoryDetail(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể tải chi tiết nguyên liệu");
+    throw buildApiError(data, "Không thể tải chi tiết nguyên liệu");
   }
 
   return data as FoodInventoryDetailResponse;
@@ -142,7 +225,7 @@ export async function createFoodInventory(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể thêm nguyên liệu vào kho");
+    throw buildApiError(data, "Không thể thêm nguyên liệu vào kho");
   }
 
   return data as CreateFoodInventoryResponse;
@@ -161,7 +244,7 @@ export async function deleteFoodInventory(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Không thể xóa nguyên liệu khỏi kho");
+    throw buildApiError(data, "Không thể xóa nguyên liệu khỏi kho");
   }
 
   return data as DeleteFoodInventoryResponse;
@@ -183,8 +266,9 @@ export async function addBoughtItemsToInventory(
   const data = await parseJsonSafely(response);
 
   if (!response.ok) {
-    throw new Error(
-      data?.message || "Không thể thêm các nguyên liệu đã mua vào kho"
+    throw buildApiError(
+      data,
+      "Không thể thêm các nguyên liệu đã mua vào kho"
     );
   }
 

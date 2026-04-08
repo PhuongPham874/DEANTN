@@ -24,6 +24,21 @@ type OptionItem = {
   value: string;
 };
 
+type ApiFieldErrors = Partial<
+  Record<keyof DraftState, string | string[]>
+>;
+
+type ApiLikeError = Error & {
+  fields?: ApiFieldErrors;
+  errors?: ApiFieldErrors;
+  data?: ApiFieldErrors;
+  responseData?: {
+    message?: string;
+    errors?: ApiFieldErrors;
+    data?: ApiFieldErrors;
+  };
+};
+
 const GROUP_TABS = [
   { key: "all", label: "Tất cả" },
   { key: "rau củ", label: "Rau củ" },
@@ -80,8 +95,47 @@ function createInitialDraft(): DraftState {
   };
 }
 
-function normalizeError(error: any) {
-  return error?.message || "Đã có lỗi xảy ra";
+function normalizeError(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return "Đã có lỗi xảy ra";
+}
+
+function getFirstErrorMessage(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    const first = value.find((item) => typeof item === "string");
+    return typeof first === "string" ? first : undefined;
+  }
+
+  return typeof value === "string" ? value : undefined;
+}
+
+function extractFieldErrors(error: unknown): DraftErrors {
+  const apiError = error as ApiLikeError | undefined;
+
+  const rawFields =
+    apiError?.fields ||
+    apiError?.errors ||
+    apiError?.data ||
+    apiError?.responseData?.errors ||
+    apiError?.responseData?.data;
+
+  if (!rawFields || typeof rawFields !== "object") {
+    return {};
+  }
+
+  return {
+    ingredient_name: getFirstErrorMessage(rawFields.ingredient_name),
+    quantity: getFirstErrorMessage(rawFields.quantity),
+    unit: getFirstErrorMessage(rawFields.unit),
+    group_name: getFirstErrorMessage(rawFields.group_name),
+    category: getFirstErrorMessage(rawFields.category),
+  };
+}
+
+function hasAnyFieldError(errors: DraftErrors) {
+  return Object.values(errors).some(Boolean);
 }
 
 function formatQuantity(value: number) {
@@ -119,7 +173,7 @@ export function useFoodInventoryUI() {
         });
 
         setItems(response.data.items ?? []);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(normalizeError(err));
       } finally {
         if (showLoading) setLoading(false);
@@ -229,7 +283,14 @@ export function useFoodInventoryUI() {
       setDraft(createInitialDraft());
       setDraftErrors({});
       await fetchList(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const nextErrors = extractFieldErrors(err);
+
+      if (hasAnyFieldError(nextErrors)) {
+        setDraftErrors(nextErrors);
+        return;
+      }
+
       Alert.alert("Thông báo", normalizeError(err));
     } finally {
       setSavingDraft(false);
@@ -251,8 +312,8 @@ export function useFoodInventoryUI() {
                 setDeletingItemId(item.food_inventory_id);
                 await deleteFoodInventory(item.food_inventory_id);
                 await fetchList(false);
-                Alert.alert("Thông báo", `Xóa nguyên liệu thành công`);
-              } catch (err: any) {
+                Alert.alert("Thông báo", "Xóa nguyên liệu thành công");
+              } catch (err: unknown) {
                 Alert.alert("Thông báo", normalizeError(err));
               } finally {
                 setDeletingItemId(null);
