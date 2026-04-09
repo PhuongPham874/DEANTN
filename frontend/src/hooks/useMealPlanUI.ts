@@ -850,14 +850,6 @@ export function useMealPlanUI() {
 
               const response = await generateWeekShoppingList(weekData.start_date);
 
-              if (!response.success) {
-                Alert.alert(
-                  "Thông báo",
-                  response.message || "Danh sách mua sắm tuần này đã tồn tại"
-                );
-                return;
-              }
-
               Alert.alert(
                 "Thành công",
                 response.message || "Đã tạo danh sách mua sắm tuần"
@@ -866,7 +858,7 @@ export function useMealPlanUI() {
               router.push("/shopping");
             } catch (error: any) {
               Alert.alert(
-                "Lỗi",
+                "Thông báo",
                 error?.message || "Không thể tạo danh sách mua sắm tuần"
               );
             } finally {
@@ -898,15 +890,6 @@ export function useMealPlanUI() {
                 setCreatingDayShoppingDate(date);
 
                 const response = await generateDayShoppingList(date);
-
-                if (!response.success) {
-                Alert.alert(
-                    "Thông báo",
-                    response.message || "Danh sách mua sắm ngày này đã tồn tại"
-                  );
-                  return;
-                }
-
                 Alert.alert(
                   "Thành công",
                   response.message || "Đã tạo danh sách mua sắm ngày"
@@ -915,7 +898,7 @@ export function useMealPlanUI() {
                 router.push("/shopping");
               } catch (error: any) {
                 Alert.alert(
-                  "Lỗi",
+                  "Thông báo",
                   error?.message || "Không thể tạo danh sách mua sắm ngày"
                 );
               } finally {

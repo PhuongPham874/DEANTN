@@ -139,7 +139,6 @@ export type UpdateShoppingItemResponse = {
 };
 
 export type GenerateShoppingListResponse = {
-  success: boolean;
   message: string;
   data: ShoppingListSummary | null;
 };
