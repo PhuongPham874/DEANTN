@@ -260,7 +260,7 @@ class MealPlanService:
 
         shopping_reset = deleted_day or deleted_week
 
-        message = "Xóa món khỏi thực đơn thành công"
+        message = "Đã xóa món ăn thành công"
         if shopping_reset:
             message += ". Danh sách mua sắm liên quan đã được xóa do thực đơn thay đổi"
 

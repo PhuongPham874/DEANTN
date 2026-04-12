@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   FlatList,
@@ -24,6 +25,7 @@ const BORDER = "#CFE0D3";
 const ERROR = "#D93A3A";
 
 export default function ShoppingListScreen() {
+  const router = useRouter();
   const {
     search,
     setSearch,
@@ -51,7 +53,7 @@ export default function ShoppingListScreen() {
             <View style={styles.header}>
               <Text style={styles.screenTitle}>MUA SẮM</Text>
 
-              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85} onPress={() => router.push("/chatbot")}>
                 <BotIcon width={40} height={38} />
               </TouchableOpacity>
             </View>

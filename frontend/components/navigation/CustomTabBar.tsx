@@ -56,7 +56,7 @@ function getTabMeta(routeName: string, focused: boolean) {
 
     case "inventory":
       return {
-        label: "Thực phẩm",
+        label: "Nguyên liệu",
         icon: (
           <MaterialCommunityIcons
             name={focused ? "fridge" : "fridge-outline"}

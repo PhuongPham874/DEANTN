@@ -81,7 +81,7 @@ class HomeService:
         if not dish:
             return {
                 "success": False,
-                "message": "Không tìm thấy món ăn",
+                "message": "Không tìm thấy món ăn phù hợp",
                 "data": None,
             }
 

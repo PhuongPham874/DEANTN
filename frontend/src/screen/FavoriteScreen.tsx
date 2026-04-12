@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   FlatList,
@@ -25,6 +26,7 @@ const ERROR = "#D62828";
 
 export default function FavoriteScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const {
     dishes,
@@ -61,8 +63,10 @@ export default function FavoriteScreen() {
             <View style={styles.header}>
               <Text style={styles.title}>YÊU THÍCH</Text>
 
-              <TouchableOpacity activeOpacity={0.85} style={styles.chatbotButton}>
+              <TouchableOpacity activeOpacity={0.85} style={styles.chatbotButton} onPress={() => router.push("/chatbot")}
+>
                 <BotIcon width={40} height={38} />
+
               </TouchableOpacity>
             </View>
 

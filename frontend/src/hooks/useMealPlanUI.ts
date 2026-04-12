@@ -381,7 +381,7 @@ export function useMealPlanUI() {
         await loadWeek(weekData?.start_date);
         Alert.alert(
         "Thông báo",
-        "Xóa món khỏi thực đơn thành công"
+        "Đã xóa món ăn thành công"
       );
       } catch (error) {
         const message =

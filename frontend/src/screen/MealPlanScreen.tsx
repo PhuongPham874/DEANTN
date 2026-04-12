@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   FlatList,
@@ -28,6 +29,7 @@ const MUTED = "#6B7280";
 
 export default function MealPlanScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const {
     screenLoading,
@@ -148,7 +150,7 @@ export default function MealPlanScreen() {
           <>
             <View style={styles.topScreenHeader}>
               <Text style={styles.topScreenTitle}>THỰC ĐƠN</Text>
-              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85} onPress={() => router.push("/chatbot")}>
                 <BotIcon width={40} height={38} />
               </TouchableOpacity>
             </View>

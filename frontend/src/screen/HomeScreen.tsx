@@ -104,7 +104,7 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.headerRight}>
-                <TouchableOpacity activeOpacity={0.85} style={styles.chatbotButton}>
+                <TouchableOpacity activeOpacity={0.85} style={styles.chatbotButton} onPress={() => router.push("/chatbot")}>
                   <BotIcon width={40} height={38} />
                 </TouchableOpacity>
 

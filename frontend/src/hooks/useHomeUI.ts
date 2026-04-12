@@ -183,7 +183,7 @@ export function useHomeUI() {
 };
 
   const emptyMessage = useMemo(() => {
-    if (search.trim()) return "Không tìm thấy món ăn";
+    if (search.trim()) return "Không tìm thấy món ăn phù hợp";
     if (selectedCategory !== "all") return "Không có món ăn trong danh mục này";
     return "Không tìm thấy món ăn phù hợp";
   }, [search, selectedCategory]);

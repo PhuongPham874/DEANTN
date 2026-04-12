@@ -222,7 +222,7 @@ class ShoppingListService:
         if ShoppingListService.has_week_shopping_list(user, plan):
             return {
                 "success": False,
-                "message": "Danh sách mụn tại",
+                "message": "Danh sách mua sắm thực đơn tuần này đã tồn tại",
                 "data": None,
             }
 

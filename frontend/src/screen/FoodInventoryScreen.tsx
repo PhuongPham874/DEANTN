@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   FlatList,
@@ -71,6 +72,7 @@ function InventoryCard({
 
 export default function FoodInventoryScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const {
     items,
@@ -119,9 +121,9 @@ export default function FoodInventoryScreen() {
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
-              <Text style={styles.title}>THỰC PHẨM</Text>
+              <Text style={styles.title}>NGUYÊN LIỆU</Text>
 
-              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85} onPress={() => router.push("/chatbot")}>
                 <BotIcon width={40} height={38} />
               </TouchableOpacity>
             </View>
