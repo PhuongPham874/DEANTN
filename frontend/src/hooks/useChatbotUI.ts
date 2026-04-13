@@ -1,13 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
 import {
-  askGeneralChatbot,
-  askRagChatbot,
+  askChatbot,
   ChatHistoryItem,
 } from "@/src/api/chatbotApi";
 
 export type ChatRole = "user" | "assistant";
-export type ChatMode = "rag" | "general";
 
 export type ChatMessage = {
   id: string;
@@ -16,6 +14,8 @@ export type ChatMessage = {
   createdAt: number;
   sources?: string[];
   isError?: boolean;
+  mode?: string;
+  intent?: string | null;
 };
 
 function createMessage(
@@ -30,6 +30,8 @@ function createMessage(
     createdAt: Date.now(),
     sources: [],
     isError: false,
+    mode: undefined,
+    intent: null,
     ...options,
   };
 }
@@ -45,7 +47,6 @@ export function useChatbotUI() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [mode, setMode] = useState<ChatMode>("general");
 
   const listRef = useRef<any>(null);
 
@@ -70,7 +71,6 @@ export function useChatbotUI() {
 
   const clearConversation = useCallback(() => {
     if (sending) return;
-
     if (!messages.length) return;
 
     Alert.alert("Thông báo", "Bạn có muốn bắt đầu cuộc trò chuyện mới không?", [
@@ -84,6 +84,27 @@ export function useChatbotUI() {
       },
     ]);
   }, [messages.length, sending]);
+
+  const sendToBot = useCallback(
+    async (text: string, currentMessages: ChatMessage[]) => {
+      const payload = {
+        message: text,
+        chat_history: buildHistory(currentMessages),
+      };
+
+      const response = await askChatbot(payload);
+
+      const botMessage = createMessage("assistant", response.answer, {
+        sources: response.sources || [],
+        mode: response.mode,
+        intent: response.intent ?? null,
+      });
+
+      setMessages((prev) => [...prev, botMessage]);
+      scrollToEnd();
+    },
+    [buildHistory, scrollToEnd]
+  );
 
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim();
@@ -99,26 +120,9 @@ export function useChatbotUI() {
     scrollToEnd();
 
     try {
-      const payload = {
-        message: trimmed,
-        chat_history: buildHistory(nextMessages),
-      };
-
-      const response =
-        mode === "rag"
-          ? await askRagChatbot(payload)
-          : await askGeneralChatbot(payload);
-
-      const botMessage = createMessage("assistant", response.answer, {
-        sources: response.sources || [],
-      });
-
-      setMessages((prev) => [...prev, botMessage]);
-      scrollToEnd();
+      await sendToBot(trimmed, nextMessages);
     } catch (error: unknown) {
-      const message = normalizeError(error);
-
-      const errorMessage = createMessage("assistant", message, {
+      const errorMessage = createMessage("assistant", normalizeError(error), {
         isError: true,
       });
 
@@ -127,57 +131,36 @@ export function useChatbotUI() {
     } finally {
       setSending(false);
     }
-  }, [input, sending, messages, mode, buildHistory, scrollToEnd]);
+  }, [input, sending, messages, scrollToEnd, sendToBot]);
 
   const quickAsk = useCallback(
     async (text: string) => {
       if (sending) return;
-      setInput(text);
 
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          setInput("");
-          const userMessage = createMessage("user", text);
-          const nextMessages = [...messages, userMessage];
+      const userMessage = createMessage("user", text);
+      const nextMessages = [...messages, userMessage];
 
-          setMessages(nextMessages);
-          setSending(true);
-          scrollToEnd();
+      setMessages(nextMessages);
+      setInput("");
+      setSending(true);
 
-          (async () => {
-            try {
-              const payload = {
-                message: text,
-                chat_history: buildHistory(nextMessages),
-              };
+      scrollToEnd();
 
-              const response =
-                mode === "rag"
-                  ? await askRagChatbot(payload)
-                  : await askGeneralChatbot(payload);
-
-              const botMessage = createMessage("assistant", response.answer, {
-                sources: response.sources || [],
-              });
-
-              setMessages((prev) => [...prev, botMessage]);
-              scrollToEnd();
-            } catch (error: unknown) {
-              const errorMessage = createMessage(
-                "assistant",
-                normalizeError(error),
-                { isError: true }
-              );
-              setMessages((prev) => [...prev, errorMessage]);
-              scrollToEnd();
-            } finally {
-              setSending(false);
-            }
-          })();
-        }, 0);
-      });
+      try {
+        await sendToBot(text, nextMessages);
+      } catch (error: unknown) {
+        const errorMessage = createMessage(
+          "assistant",
+          normalizeError(error),
+          { isError: true }
+        );
+        setMessages((prev) => [...prev, errorMessage]);
+        scrollToEnd();
+      } finally {
+        setSending(false);
+      }
     },
-    [sending, messages, mode, buildHistory, scrollToEnd]
+    [sending, messages, scrollToEnd, sendToBot]
   );
 
   return {
@@ -186,8 +169,6 @@ export function useChatbotUI() {
     input,
     setInput,
     sending,
-    mode,
-    setMode,
     hasMessages,
     canSend,
     sendMessage,

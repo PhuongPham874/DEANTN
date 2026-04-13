@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
@@ -90,21 +91,45 @@ export default function ChatbotScreen() {
   const insets = useSafeAreaInsets();
 
   const {
-    listRef,
-    messages,
-    input,
-    setInput,
-    sending,
-    mode,
-    setMode,
-    hasMessages,
-    canSend,
-    sendMessage,
-    clearConversation,
-    quickAsk,
-  } = useChatbotUI();
+  listRef,
+  messages,
+  input,
+  setInput,
+  sending,
+  hasMessages,
+  canSend,
+  sendMessage,
+  clearConversation,
+  quickAsk,
+} = useChatbotUI();
 
-  const lastTime = messages.length ? formatTime(messages[0].createdAt) : "";
+  const scrollToBottom = useCallback((animated = true) => {
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToEnd?.({ animated });
+    });
+  }, [listRef]);
+
+  useEffect(() => {
+    scrollToBottom(false);
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom(true);
+  }, [messages.length, sending, scrollToBottom]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", () => {
+      scrollToBottom(true);
+    });
+
+    return () => {
+      showSub.remove();
+    };
+  }, [scrollToBottom]);
+
+  const lastTime = messages.length
+    ? formatTime(messages[messages.length - 1].createdAt)
+    : "";
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -112,8 +137,8 @@ export default function ChatbotScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={10}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
       >
         <View style={styles.header}>
           <TouchableOpacity
@@ -154,10 +179,7 @@ export default function ChatbotScreen() {
 
               <TouchableOpacity
                 style={styles.quickChip}
-                onPress={() => {
-                  setMode("rag");
-                  quickAsk("Giải thích chức năng của ứng dụng");
-                }}
+                onPress={() => quickAsk("Giải thích chức năng của ứng dụng")}
               >
                 <Text style={styles.quickChipText}>Hỏi về ứng dụng</Text>
               </TouchableOpacity>
@@ -168,14 +190,15 @@ export default function ChatbotScreen() {
             ref={listRef}
             data={messages}
             keyExtractor={(item) => item.id}
+            style={styles.list}
             contentContainerStyle={[
               styles.chatContent,
-              { paddingBottom: insets.bottom + 110 },
+              { paddingBottom: 16 + insets.bottom },
             ]}
             showsVerticalScrollIndicator={false}
-            onContentSizeChange={() =>
-              listRef.current?.scrollToEnd?.({ animated: true })
-            }
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => scrollToBottom(true)}
+            onLayout={() => scrollToBottom(false)}
             ListHeaderComponent={
               <View style={styles.timeWrap}>
                 <Text style={styles.timeText}>Today, {lastTime}</Text>
@@ -219,7 +242,12 @@ export default function ChatbotScreen() {
               style={styles.input}
               multiline
               editable={!sending}
-              onSubmitEditing={sendMessage}
+              blurOnSubmit={false}
+              returnKeyType="send"
+              onFocus={() => scrollToBottom(true)}
+              onSubmitEditing={() => {
+                if (canSend) sendMessage();
+              }}
             />
 
             <TouchableOpacity
@@ -277,6 +305,10 @@ const styles = StyleSheet.create({
     height: 38,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  list: {
+    flex: 1,
   },
 
   emptyContainer: {
@@ -387,16 +419,13 @@ const styles = StyleSheet.create({
   },
 
   inputBarWrap: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     paddingHorizontal: 18,
     paddingTop: 10,
-    backgroundColor: "transparent",
+    paddingBottom: 12,
+    backgroundColor: BG,
   },
   inputBar: {
-    minHeight: 74,
+    minHeight: 60,
     borderRadius: 36,
     backgroundColor: USER_BUBBLE,
     flexDirection: "row",

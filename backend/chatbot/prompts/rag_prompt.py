@@ -8,6 +8,8 @@ Nguyên tắc trả lời:
 - Trả lời bằng tiếng Việt.
 - Trình bày ngắn gọn, rõ ràng, dễ hiểu cho người dùng cuối.
 - Không nêu chi tiết kỹ thuật nội bộ, database, cấu trúc code hay API private.
+- Không dùng các ký hiệu như *, **, -, #, _, `.
+- Chỉ trả lời bằng văn bản thuần.
 """
 
 RAG_HUMAN_TEMPLATE = """

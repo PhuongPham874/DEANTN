@@ -10,15 +10,22 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
 import django
 django.setup()
 
-from chatbot.services.chat_service import ChatService
+from chatbot.services.rag_service import RAGService
+
+
+def print_result(result):
+    print("\n=== KẾT QUẢ RAG ===")
+    print(f"Mode: {result.get('mode', 'rag')}")
+    print(f"Sources: {result.get('sources', [])}")
+    print(f"Bot: {result.get('answer', '')}\n")
 
 
 def main():
-    print("=== TEST RAG CHATBOT CÓ MEMORY ===")
+    print("=== TEST RIÊNG RAG CHATBOT ===")
     print("Gõ 'exit' để thoát.")
     print("Gõ 'clear' để xóa lịch sử hội thoại.\n")
 
-    service = ChatService()
+    service = RAGService()
     history = []
 
     while True:
@@ -27,21 +34,25 @@ def main():
         if not question:
             continue
 
-        if question.lower() in ["exit", "quit", "q"]:
+        lower_question = question.lower()
+
+        if lower_question in ["exit", "quit", "q"]:
             print("Kết thúc test.")
             break
 
-        if question.lower() == "clear":
+        if lower_question == "clear":
             history = []
             print("Đã xóa lịch sử hội thoại.\n")
             continue
 
         try:
-            result = service.answer_question(question, history)
+            result = service.ask(
+                question=question,
+                chat_history=history,
+            )
 
-            answer = result["answer"]
-            print(f"\nBot: {answer}")
-            print(f"Sources: {result['sources']}\n")
+            answer = result.get("answer", "")
+            print_result(result)
 
             history.append({
                 "role": "user",

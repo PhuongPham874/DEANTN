@@ -61,6 +61,7 @@ class RAGService:
             return {
                 "answer": "Hiện tại tôi chưa tìm thấy thông tin phù hợp trong tài liệu.",
                 "sources": [],
+                "mode": "rag",
             }
 
         context = "\n\n".join(doc.page_content for doc in docs)
@@ -68,22 +69,22 @@ class RAGService:
 
         prompt = f"""{RAG_SYSTEM_PROMPT}
 
-{RAG_HUMAN_TEMPLATE.format(
-    chat_history=history_text,
-    context=context,
-    question=question
-)}
-"""
+    {RAG_HUMAN_TEMPLATE.format(
+        chat_history=history_text,
+        context=context,
+        question=question
+    )}
+    """
 
         response = self.llm.invoke(prompt)
 
         sources = []
         for doc in docs:
-            source_name = doc.metadata.get("source", "knowledge_logic.docx")
-            if source_name not in sources:
+            source_name = doc.metadata.get("source")
+            if source_name and source_name not in sources:
                 sources.append(source_name)
 
         return {
             "answer": response.content,
-            "sources": sources,
+            "mode": "rag",
         }

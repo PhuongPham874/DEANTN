@@ -17,6 +17,10 @@ export type AskChatResponse = {
   answer: string;
   sources?: string[];
   mode?: string;
+  intent?: string | null;
+  context_used?: string[];
+  route_scores?: Record<string, number>;
+  route_confidence?: number | null;
 };
 
 type ErrorResponseShape = {
@@ -35,30 +39,21 @@ async function parseJsonSafely(response: Response): Promise<any> {
 }
 
 function buildApiError(data: ErrorResponseShape, fallbackMessage: string) {
-  return new Error(data?.message || data?.detail || fallbackMessage);
+  if (typeof data?.message === "string" && data.message.trim()) {
+    return new Error(data.message);
+  }
+
+  if (typeof data?.detail === "string" && data.detail.trim()) {
+    return new Error(data.detail);
+  }
+
+  return new Error(fallbackMessage);
 }
 
-export async function askRagChatbot(
+export async function askChatbot(
   payload: AskChatPayload
 ): Promise<AskChatResponse> {
   const response = await authFetch(`${API_BASE_URL}/chatbot/ask/`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-
-  const data = await parseJsonSafely(response);
-
-  if (!response.ok) {
-    throw buildApiError(data, "Không thể gửi tin nhắn đến chatbot");
-  }
-
-  return data as AskChatResponse;
-}
-
-export async function askGeneralChatbot(
-  payload: AskChatPayload
-): Promise<AskChatResponse> {
-  const response = await authFetch(`${API_BASE_URL}/chatbot/general-ask/`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
