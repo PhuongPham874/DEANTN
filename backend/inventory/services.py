@@ -213,6 +213,44 @@ class FoodInventoryService:
                 "food_inventory_id": food_inventory_id,
             },
         }
+    
+    @staticmethod
+    def _get_missing_quantity_to_target(existing_item, target_quantity, target_unit):
+        """
+        Tính phần còn thiếu để lượng trong kho đạt đúng target_quantity/target_unit.
+
+        Returns:
+            - None: nếu lượng hiện có đã đủ hoặc dư
+            - {"quantity": ..., "unit": ...}: phần thiếu cần cộng thêm
+        """
+        existing_unit = IngredientMergeHelper.normalize_unit(existing_item.unit)
+        normalized_target_unit = IngredientMergeHelper.normalize_unit(target_unit)
+
+        if not IngredientMergeHelper.can_merge(existing_unit, normalized_target_unit):
+            return None
+
+        existing_base = IngredientMergeHelper.to_base(
+            existing_item.quantity,
+            existing_unit,
+        )
+        target_base = IngredientMergeHelper.to_base(
+            target_quantity,
+            normalized_target_unit,
+        )
+
+        if existing_base >= target_base:
+            return None
+
+        missing_base = target_base - existing_base
+        missing_quantity = IngredientMergeHelper.from_base(
+            missing_base,
+            normalized_target_unit,
+        )
+
+        return {
+            "quantity": missing_quantity,
+            "unit": normalized_target_unit,
+        }
 
     @staticmethod
     @transaction.atomic
@@ -229,13 +267,11 @@ class FoodInventoryService:
                 "data": None,
             }
 
-        # Lấy QuerySet các item đã mua
         bought_items_queryset = ShoppingItem.objects.filter(
             shopping=shopping_list,
             status="bought",
         ).select_related("ingredient")
 
-        # Chuyển thành list để thực hiện loop logic hiện tại của bạn
         bought_items = list(bought_items_queryset)
 
         if not bought_items:
@@ -247,6 +283,7 @@ class FoodInventoryService:
 
         created_count = 0
         merged_count = 0
+        skipped_count = 0
         moved_item_count = 0
         processed_item_ids = []
 
@@ -258,13 +295,22 @@ class FoodInventoryService:
             )
 
             if mergeable_item:
-                merged_item = FoodInventoryService._merge_inventory_quantity(
+                missing_result = FoodInventoryService._get_missing_quantity_to_target(
                     existing_item=mergeable_item,
-                    quantity=shopping_item.quantity,
-                    unit=shopping_item.unit,
+                    target_quantity=shopping_item.quantity,
+                    target_unit=shopping_item.unit,
                 )
-                if merged_item:
-                    merged_count += 1
+
+                if missing_result is None:
+                    skipped_count += 1
+                else:
+                    merged_item = FoodInventoryService._merge_inventory_quantity(
+                        existing_item=mergeable_item,
+                        quantity=missing_result["quantity"],
+                        unit=missing_result["unit"],
+                    )
+                    if merged_item:
+                        merged_count += 1
             else:
                 FoodInventory.objects.create(
                     user=user,
@@ -287,6 +333,7 @@ class FoodInventoryService:
                 "shopping_id": shopping_id,
                 "created_count": created_count,
                 "merged_count": merged_count,
+                "skipped_count": skipped_count,
                 "moved_item_count": moved_item_count,
                 "processed_item_ids": processed_item_ids,
                 "shopping_deleted": delete_result["deleted"],

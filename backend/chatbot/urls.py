@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import BuildIndexAPIView, ChatbotAskAPIView, GeneralChatAPIView
+from .views import BuildIndexAPIView, ChatbotAskAPIView
 
 
 urlpatterns = [
