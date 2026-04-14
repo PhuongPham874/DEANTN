@@ -506,7 +506,7 @@ class ShoppingListService:
                     "data": None,
                 }
 
-            merged_item = ShoppingListService._merge_shopping_item_quantity(
+            merged_item = ShoppingListService._merge_item_quantity(
                 existing_item=mergeable_item,
                 quantity=quantity,
                 unit=unit,
@@ -515,16 +515,24 @@ class ShoppingListService:
                 return {
                     "success": True,
                     "message": "Thêm nguyên liệu vào danh sách mua sắm thành công",
-                    "data": ShoppingListService._build_shopping_item(merged_item),
+                    "data": ShoppingListService._build_shopping_item_detail(merged_item),
                 }
         
-        ingredient, _, normalized_data = FoodInventoryService.get_or_create_ingredient(
+        ingredient, _, normalized_data = IngredientInputService.get_or_create_ingredient(
             validated_data
         )
+        first_item = shopping_list.items.order_by("item_id").first()
+        if not first_item:
+            return {
+                "success": False,
+                "message": "Danh sách mua sắm chưa có plan để thêm mục mới",
+                "data": None,
+            }
 
         item = ShoppingItem.objects.create(
             shopping=shopping_list,
             ingredient=ingredient,
+            plan=first_item.plan,
             quantity=normalized_data["quantity"],
             unit=normalized_data["unit"],
         )
@@ -532,7 +540,7 @@ class ShoppingListService:
         return {
             "success": True,
             "message": "Thêm nguyên liệu vào danh sách mua sắm thành công",
-            "data": ShoppingListService._build_shopping_item(item),
+            "data": ShoppingListService._build_shopping_item_detail(item),
         }
 
     

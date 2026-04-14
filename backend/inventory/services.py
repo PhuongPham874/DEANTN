@@ -213,7 +213,8 @@ class FoodInventoryService:
                 "food_inventory_id": food_inventory_id,
             },
         }
-    
+
+
     @staticmethod
     def _get_missing_quantity_to_target(existing_item, target_quantity, target_unit):
         """
