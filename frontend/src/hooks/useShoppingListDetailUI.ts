@@ -11,7 +11,7 @@ import {
   ShoppingListDetail,
   toggleShoppingItemStatus,
 } from "@/src/api/shoppingListApi";
-import { addBoughtItemsToInventory } from "@/src/api/foodInventoryApi";
+import { addBoughtItemsToInventory, checkBoughtItemsToInventory } from "@/src/api/foodInventoryApi";
 
 type DraftState = {
   ingredient_name: string;
@@ -337,13 +337,32 @@ export function useShoppingListDetailUI() {
     [detail, fetchDetail, handleAfterDeleteShoppingItem]
   );
 
-  const onAddBoughtItemsToInventory = useCallback(() => {
-    if (!detail) return;
+  const onAddBoughtItemsToInventory = useCallback(async () => {
+    if (!detail || addingToInventory) return;
 
-    Alert.alert(
-      "Xác nhận",
-      "Bạn có chắc chắn muốn cập nhật các nguyên liệu đã mua vào kho?",
-      [
+    try {
+      setAddingToInventory(true);
+
+      const checkResponse = await checkBoughtItemsToInventory(detail.shopping_id);
+
+      if (!checkResponse.success) {
+        Alert.alert(
+          "Thông báo",
+          checkResponse.message || "Không thể kiểm tra nguyên liệu"
+        );
+        return;
+      }
+
+      const sufficientItems = checkResponse.data?.items ?? [];
+      const hasSufficient = checkResponse.data?.has_sufficient ?? false;
+
+      const confirmMessage = hasSufficient
+        ? sufficientItems.length > 0
+          ? `Bạn có chắc chắn muốn cập nhật các nguyên liệu đã mua vào kho? Các nguyên liệu đã có đủ: ${sufficientItems.join(", ")} sẽ không cập nhật vào kho.`
+          : "Một số nguyên liệu đã đủ trong kho. Bạn vẫn muốn tiếp tục?"
+        : "Bạn có chắc chắn muốn cập nhật các nguyên liệu đã mua vào kho?";
+
+      Alert.alert("Xác nhận", confirmMessage, [
         { text: "Hủy", style: "cancel" },
         {
           text: "Đồng ý",
@@ -351,11 +370,19 @@ export function useShoppingListDetailUI() {
             try {
               setAddingToInventory(true);
 
-              const response = await addBoughtItemsToInventory(detail.shopping_id);
+              const addResponse = await addBoughtItemsToInventory(detail.shopping_id);
+
+              if (!addResponse.success) {
+                Alert.alert(
+                  "Thông báo",
+                  addResponse.message || "Không thể cập nhật nguyên liệu vào kho"
+                );
+                return;
+              }
 
               Alert.alert(
                 "Thông báo",
-                response.message || "Đã cập nhật nguyên liệu vào kho thực phẩm"
+                addResponse.message || "Đã cập nhật nguyên liệu vào kho thực phẩm"
               );
 
               await fetchDetail(false);
@@ -367,9 +394,12 @@ export function useShoppingListDetailUI() {
             }
           },
         },
-      ]
-    );
-  }, [detail, fetchDetail, router]);
+      ]);
+    } catch (err: unknown) {
+      Alert.alert("Thông báo", normalizeError(err));
+      setAddingToInventory(false);
+    }
+  }, [detail, addingToInventory, fetchDetail, router]);
 
   const pendingItems = useMemo(() => detail?.pending_items ?? [], [detail]);
   const boughtItems = useMemo(() => detail?.bought_items ?? [], [detail]);

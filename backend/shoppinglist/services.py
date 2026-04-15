@@ -430,7 +430,7 @@ class ShoppingListService:
 
         return {
             "success": True,
-            "message": "Xóa mục mua sắm thành công",
+            "message": "Đã xóa danh sách mua sắm thành công",
             "data": {
                 "item_id": item_id,
                 "shopping_id": shopping_id,

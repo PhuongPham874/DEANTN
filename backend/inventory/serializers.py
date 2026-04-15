@@ -103,6 +103,7 @@ class FoodInventoryDeleteSerializer(serializers.Serializer):
 
 class AddBoughtItemsToInventorySerializer(serializers.Serializer):
     shopping_id = serializers.IntegerField(required=True)
+    
 
     def validate_shopping_id(self, value):
         if value <= 0:

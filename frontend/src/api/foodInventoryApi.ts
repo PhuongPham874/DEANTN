@@ -18,6 +18,15 @@ export type FoodInventoryListResponse = {
   };
 };
 
+export type CheckBoughtItemsToInventoryResponse = {
+  success: boolean;
+  message: string;
+  data?: {
+    has_sufficient: boolean;
+    items: string[];
+  } | null;
+};
+
 export type FoodInventoryDetailResponse = {
   message: string;
   data: FoodInventoryItem;
@@ -53,15 +62,22 @@ export type DeleteFoodInventoryResponse = {
 };
 
 export type AddBoughtItemsToInventoryResponse = {
+  success: boolean;
   message: string;
-  data: {
-    shopping_id: number;
-    created_count: number;
-    merged_count: number;
-    moved_item_count: number;
-    processed_item_ids: number[];
+  data?: {
+    // ===== CASE WARNING =====
+    has_sufficient?: boolean;
+    items?: string[];
+
+    // ===== CASE SUCCESS =====
+    shopping_id?: number;
+    created_count?: number;
+    merged_count?: number;
+    skipped_count?: number;
+    moved_item_count?: number;
+    processed_item_ids?: number[];
     shopping_deleted?: boolean;
-  };
+  } | null;
 };
 
 export type FoodInventoryFieldName =
@@ -248,6 +264,31 @@ export async function deleteFoodInventory(
   }
 
   return data as DeleteFoodInventoryResponse;
+}
+
+export async function checkBoughtItemsToInventory(
+  shoppingId: number
+): Promise<CheckBoughtItemsToInventoryResponse> {
+  const response = await authFetch(
+    `${API_BASE_URL}/inventory/check-bought-items/`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        shopping_id: shoppingId,
+      }),
+    }
+  );
+
+  const data = await parseJsonSafely(response);
+
+  if (!response.ok) {
+    throw buildApiError(
+      data,
+      "Không thể kiểm tra nguyên liệu trước khi cập nhật vào kho"
+    );
+  }
+
+  return data as CheckBoughtItemsToInventoryResponse;
 }
 
 export async function addBoughtItemsToInventory(

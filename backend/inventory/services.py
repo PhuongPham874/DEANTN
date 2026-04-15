@@ -254,6 +254,67 @@ class FoodInventoryService:
         }
 
     @staticmethod
+    def check_bought_items_sufficient_in_inventory(user, shopping_id):
+        shopping_list = ShoppingList.objects.filter(
+            shopping_id=shopping_id,
+            user=user,
+        ).first()
+
+        if not shopping_list:
+            return {
+                "success": False,
+                "message": "Không tìm thấy danh sách mua sắm",
+                "data": None,
+            }
+
+        bought_items = list(
+            ShoppingItem.objects.filter(
+                shopping=shopping_list,
+                status="bought",
+            ).select_related("ingredient")
+        )
+
+        if not bought_items:
+            return {
+                "success": False,
+                "message": "Không có nguyên liệu đã mua để thêm vào kho",
+                "data": None,
+            }
+
+        sufficient_items = []
+
+        for shopping_item in bought_items:
+            mergeable_item = FoodInventoryService._find_mergeable_inventory_item(
+                user=user,
+                ingredient_name=shopping_item.ingredient.ingredient_name,
+                unit=shopping_item.unit,
+            )
+
+            if not mergeable_item:
+                continue
+
+            missing_result = FoodInventoryService._get_missing_quantity_to_target(
+                existing_item=mergeable_item,
+                target_quantity=shopping_item.quantity,
+                target_unit=shopping_item.unit,
+            )
+
+            if missing_result is None:
+                ingredient_name = shopping_item.ingredient.ingredient_name
+                if ingredient_name not in sufficient_items:
+                    sufficient_items.append(ingredient_name)
+
+        return {
+            "success": True,
+            "message": "Kiểm tra nguyên liệu thành công",
+            "data": {
+                "has_sufficient": len(sufficient_items) > 0,
+                "items": sufficient_items,
+            },
+        }
+
+
+    @staticmethod
     @transaction.atomic
     def add_bought_items_to_inventory(user, shopping_id):
         shopping_list = ShoppingList.objects.filter(

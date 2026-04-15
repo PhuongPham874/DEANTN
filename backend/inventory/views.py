@@ -121,7 +121,35 @@ def food_inventory_delete_view(request):
         },
         status=status.HTTP_200_OK,
     )
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def check_bought_items_to_inventory_view(request):
+    serializer = AddBoughtItemsToInventorySerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
+    result = FoodInventoryService.check_bought_items_sufficient_in_inventory(
+        user=request.user,
+        shopping_id=serializer.validated_data["shopping_id"],
+    )
+
+    if not result["success"]:
+        return Response(
+            {
+                "success": False,
+                "message": result["message"],
+                "data": result.get("data"),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    return Response(
+        {
+            "success": True,
+            "message": result["message"],
+            "data": result["data"],
+        },
+        status=status.HTTP_200_OK,
+    )
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -137,14 +165,16 @@ def add_bought_items_to_inventory_view(request):
     if not result["success"]:
         return Response(
             {
+                "success": False,
                 "message": result["message"],
-                "data": None,
+                "data": result.get("data"),
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_200_OK,
         )
 
     return Response(
         {
+            "success": True,
             "message": result["message"],
             "data": result["data"],
         },
