@@ -16,6 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Feather, Ionicons } from "@expo/vector-icons";
 
 import IngredientModal from "@/components/individualDishForm/IngredientModal";
+import InventoryEditIngredientModal from "@/components/individualDishForm/InventoryEditIngredientModal";
 import { useFoodInventoryUI } from "@/src/hooks/useFoodInventoryUI";
 import BotIcon from "@/assets/hugeicons_bot";
 
@@ -27,48 +28,6 @@ const MUTED = "#6B7280";
 const BORDER = "#CFE0D3";
 const ERROR = "#D93A3A";
 const DANGER = "#E14B4B";
-
-type InventoryCardProps = {
-  name: string;
-  subtitle: string;
-  onDelete: () => void;
-  deleting?: boolean;
-};
-
-function InventoryCard({
-  name,
-  subtitle,
-  onDelete,
-  deleting,
-}: InventoryCardProps) {
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardContent}>
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {name}
-        </Text>
-        <Text style={styles.cardMeta} numberOfLines={1}>
-          {subtitle}
-        </Text>
-      </View>
-
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={onDelete}
-          activeOpacity={0.8}
-          disabled={deleting}
-        >
-          {deleting ? (
-            <ActivityIndicator size="small" color={DANGER} />
-          ) : (
-            <Feather name="trash-2" size={20} color={DANGER} />
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
 
 export default function FoodInventoryScreen() {
   const insets = useSafeAreaInsets();
@@ -86,6 +45,7 @@ export default function FoodInventoryScreen() {
     setSelectedGroup,
     groupTabs,
     modalVisible,
+    editModalVisible,
     draft,
     draftErrors,
     deletingItemId,
@@ -94,19 +54,19 @@ export default function FoodInventoryScreen() {
     categoryOptions,
     onRefresh,
     openCreateModal,
+    openEditModal,
     closeModal,
+    closeEditModal,
     onChangeDraft,
     onSaveDraft,
+    onUpdateItem,
     onDeleteItem,
     getItemSubtitle,
   } = useFoodInventoryUI();
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={BG}
-      />
+      <StatusBar barStyle="dark-content" backgroundColor={BG} />
 
       <FlatList
         data={items}
@@ -123,7 +83,11 @@ export default function FoodInventoryScreen() {
             <View style={styles.header}>
               <Text style={styles.title}>NGUYÊN LIỆU</Text>
 
-              <TouchableOpacity style={styles.chatbotButton} activeOpacity={0.85} onPress={() => router.push("/chatbot")}>
+              <TouchableOpacity
+                style={styles.chatbotButton}
+                activeOpacity={0.85}
+                onPress={() => router.push("/chatbot")}
+              >
                 <BotIcon width={40} height={38} />
               </TouchableOpacity>
             </View>
@@ -178,12 +142,40 @@ export default function FoodInventoryScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.cardWrap}>
-            <InventoryCard
-              name={item.ingredient_name}
-              subtitle={getItemSubtitle(item)}
-              deleting={deletingItemId === item.food_inventory_id}
-              onDelete={() => onDeleteItem(item)}
-            />
+            <View style={styles.card}>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  {item.ingredient_name}
+                </Text>
+                <Text style={styles.cardMeta} numberOfLines={1}>
+                  {getItemSubtitle(item)}
+                </Text>
+              </View>
+
+              <View style={styles.cardActions}>
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => openEditModal(item)}
+                  activeOpacity={0.8}
+                  disabled={deletingItemId === item.food_inventory_id}
+                >
+                  <Feather name="edit-2" size={20} color={PRIMARY} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => onDeleteItem(item)}
+                  activeOpacity={0.8}
+                  disabled={deletingItemId === item.food_inventory_id}
+                >
+                  {deletingItemId === item.food_inventory_id ? (
+                    <ActivityIndicator size="small" color={DANGER} />
+                  ) : (
+                    <Feather name="trash-2" size={20} color={DANGER} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         )}
       />
@@ -206,6 +198,18 @@ export default function FoodInventoryScreen() {
         onChangeDraft={onChangeDraft}
         onClose={closeModal}
         onSave={onSaveDraft}
+      />
+
+      <InventoryEditIngredientModal
+        visible={editModalVisible}
+        draft={draft}
+        errors={draftErrors}
+        unitOptions={unitOptions}
+        groupOptions={groupOptions}
+        categoryOptions={categoryOptions}
+        onChangeDraft={onChangeDraft}
+        onClose={closeEditModal}
+        onSave={onUpdateItem}
       />
     </SafeAreaView>
   );

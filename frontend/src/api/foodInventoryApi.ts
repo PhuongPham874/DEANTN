@@ -27,6 +27,25 @@ export type CheckBoughtItemsToInventoryResponse = {
   } | null;
 };
 
+export type UpdateFoodInventoryQuantityPayload = {
+  food_inventory_id: number;
+  quantity: number;
+  unit: string;
+};
+
+export type UpdateFoodInventoryQuantityResponse = {
+  message: string;
+  data: {
+    food_inventory_id: number;
+    ingredient_id: number;
+    ingredient_name: string;
+    quantity: number;
+    unit: string;
+    group_name: string;
+    category: string;
+  };
+};
+
 export type FoodInventoryDetailResponse = {
   message: string;
   data: FoodInventoryItem;
@@ -314,4 +333,22 @@ export async function addBoughtItemsToInventory(
   }
 
   return data as AddBoughtItemsToInventoryResponse;
+}
+
+
+export async function updateFoodInventoryQuantity(
+  payload: UpdateFoodInventoryQuantityPayload
+): Promise<UpdateFoodInventoryQuantityResponse> {
+  const response = await authFetch(`${API_BASE_URL}/inventory/update-quantity/`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const data = await parseJsonSafely(response);
+
+  if (!response.ok) {
+    throw buildApiError(data, "Không thể cập nhật số lượng nguyên liệu");
+  }
+
+  return data as UpdateFoodInventoryQuantityResponse;
 }

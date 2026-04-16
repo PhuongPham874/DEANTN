@@ -401,3 +401,37 @@ class FoodInventoryService:
                 "shopping_deleted": delete_result["deleted"],
             },
         }
+    
+
+    @staticmethod
+    @transaction.atomic
+    def update_food_inventory_quantity(user, validated_data):
+        food_inventory_id = validated_data["food_inventory_id"]
+        quantity = validated_data["quantity"]
+        unit = (validated_data["unit"] or "").strip()
+
+        item = (
+            FoodInventory.objects.filter(
+                food_inventory_id=food_inventory_id,
+                user=user,
+            )
+            .select_related("ingredient")
+            .first()
+        )
+
+        if not item:
+            return {
+                "success": False,
+                "message": "Không tìm thấy nguyên liệu trong kho",
+                "data": None,
+            }
+
+        item.quantity = quantity
+        item.unit = unit
+        item.save(update_fields=["quantity", "unit"])
+
+        return {
+            "success": True,
+            "message": "Cập nhật số lượng nguyên liệu thành công",
+            "data": FoodInventoryService._build_food_inventory_item(item),
+        }

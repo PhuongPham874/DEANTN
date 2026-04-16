@@ -7,7 +7,7 @@ from .serializers import (
     FoodInventoryQuerySerializer,
     FoodInventoryDetailSerializer,
     FoodInventoryCreateSerializer,
-    FoodInventoryUpdateSerializer,
+    FoodInventoryUpdateQuantitySerializer,
     FoodInventoryDeleteSerializer,
     AddBoughtItemsToInventorySerializer,
 )
@@ -175,6 +175,35 @@ def add_bought_items_to_inventory_view(request):
     return Response(
         {
             "success": True,
+            "message": result["message"],
+            "data": result["data"],
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def food_inventory_update_quantity_view(request):
+    serializer = FoodInventoryUpdateQuantitySerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    result = FoodInventoryService.update_food_inventory_quantity(
+        user=request.user,
+        validated_data=serializer.validated_data,
+    )
+
+    if not result["success"]:
+        return Response(
+            {
+                "message": result["message"],
+                "data": None,
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return Response(
+        {
             "message": result["message"],
             "data": result["data"],
         },

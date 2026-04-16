@@ -7,6 +7,7 @@ import {
   deleteFoodInventory,
   FoodInventoryItem,
   getFoodInventoryList,
+  updateFoodInventoryQuantity,
 } from "@/src/api/foodInventoryApi";
 
 type DraftState = {
@@ -160,6 +161,9 @@ export function useFoodInventoryUI() {
   const [draftErrors, setDraftErrors] = useState<DraftErrors>({});
   const [savingDraft, setSavingDraft] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [updatingItem, setUpdatingItem] = useState(false);
 
   const fetchList = useCallback(
     async (showLoading = true) => {
@@ -326,6 +330,83 @@ export function useFoodInventoryUI() {
     [fetchList]
   );
 
+  const openEditModal = useCallback((item: FoodInventoryItem) => {
+    setEditingItemId(item.food_inventory_id);
+    setDraft({
+      ingredient_name: item.ingredient_name,
+      quantity: formatQuantity(item.quantity),
+      unit: item.unit,
+      group_name: item.group_name,
+      category: item.category,
+    });
+    setDraftErrors({});
+    setEditModalVisible(true);
+  }, []);
+
+  const closeEditModal = useCallback(() => {
+    if (updatingItem) return;
+    setEditModalVisible(false);
+    setEditingItemId(null);
+    setDraftErrors({});
+    setDraft(createInitialDraft());
+  }, [updatingItem]);
+
+
+  const validateEditDraft = useCallback(() => {
+    const nextErrors: DraftErrors = {};
+
+    if (!draft.quantity.trim()) {
+      nextErrors.quantity = "Vui lòng điền đầy đủ thông tin";
+    } else if (Number.isNaN(Number(draft.quantity)) || Number(draft.quantity) <= 0) {
+      nextErrors.quantity = "Số lượng phải lớn hơn 0";
+    }
+
+    if (!draft.unit.trim()) {
+      nextErrors.unit = "Vui lòng điền đầy đủ thông tin";
+    }
+
+    setDraftErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }, [draft]);
+
+
+  const onUpdateItem = useCallback(async () => {
+    if (updatingItem || editingItemId == null) return;
+    if (!validateEditDraft()) return;
+
+    try {
+      setUpdatingItem(true);
+
+      const response = await updateFoodInventoryQuantity({
+        food_inventory_id: editingItemId,
+        quantity: Number(draft.quantity),
+        unit: draft.unit.trim(),
+      });
+
+      Alert.alert(
+        "Thông báo",
+        response.message || "Đã cập nhật nguyên liệu thành công"
+      );
+
+      setEditModalVisible(false);
+      setEditingItemId(null);
+      setDraft(createInitialDraft());
+      setDraftErrors({});
+      await fetchList(false);
+    } catch (err: unknown) {
+      const nextErrors = extractFieldErrors(err);
+
+      if (hasAnyFieldError(nextErrors)) {
+        setDraftErrors(nextErrors);
+        return;
+      }
+
+      Alert.alert("Thông báo", normalizeError(err));
+    } finally {
+      setUpdatingItem(false);
+    }
+  }, [draft, editingItemId, fetchList, updatingItem, validateEditDraft]);
+
   const getItemSubtitle = useCallback((item: FoodInventoryItem) => {
     const amount = `${formatQuantity(item.quantity)} ${item.unit}`.trim();
     const displayGroupName = GROUP_LABEL_MAP[item.group_name] || item.group_name;
@@ -370,5 +451,13 @@ export function useFoodInventoryUI() {
     onSaveDraft,
     onDeleteItem,
     getItemSubtitle,
+
+    editModalVisible,
+    editingItemId,
+    updatingItem,
+
+    openEditModal,
+    closeEditModal,
+    onUpdateItem,
   };
 }

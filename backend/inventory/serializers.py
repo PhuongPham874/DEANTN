@@ -83,14 +83,6 @@ class FoodInventoryCreateSerializer(IngredientFormSerializer):
     pass
 
 
-class FoodInventoryUpdateSerializer(IngredientFormSerializer):
-    food_inventory_id = serializers.IntegerField(required=True)
-
-    def validate_food_inventory_id(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Thực phẩm không hợp lệ")
-        return value
-
 
 class FoodInventoryDeleteSerializer(serializers.Serializer):
     food_inventory_id = serializers.IntegerField(required=True)
@@ -108,4 +100,26 @@ class AddBoughtItemsToInventorySerializer(serializers.Serializer):
     def validate_shopping_id(self, value):
         if value <= 0:
             raise serializers.ValidationError("Danh sách mua sắm không hợp lệ")
+        return value
+    
+
+class FoodInventoryUpdateQuantitySerializer(serializers.Serializer):
+    food_inventory_id = serializers.IntegerField(required=True)
+    quantity = serializers.DecimalField(
+        required=True,
+        min_value=1,
+        max_digits=10,
+        decimal_places=2,
+    )
+    unit = serializers.CharField(required=True, allow_blank=False)
+
+    def validate_food_inventory_id(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Thực phẩm không hợp lệ")
+        return value
+
+    def validate_unit(self, value):
+        value = (value or "").strip()
+        if not value:
+            raise serializers.ValidationError("Vui lòng điền đầy đủ thông tin")
         return value
