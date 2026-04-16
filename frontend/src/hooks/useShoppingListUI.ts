@@ -94,7 +94,7 @@ export function useShoppingListUI() {
 
                 Alert.alert(
                   "Thành công",
-                  response.message || "Đã xóa danh sách mua sắm thành công"
+                  "Đã xóa danh sách mua sắm thành công"
                 );
               } catch (err: any) {
                 Alert.alert("Thông báo", normalizeError(err));
