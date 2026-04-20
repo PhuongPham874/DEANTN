@@ -1,12 +1,17 @@
-from django.conf import settings
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
+
+_EMBEDDING_MODEL = None
 
 
 def get_embedding_model():
-    if not settings.GEMINI_API_KEY:
-        raise ValueError("Thiếu GEMINI_API_KEY trong file .env")
+    global _EMBEDDING_MODEL
 
-    return GoogleGenerativeAIEmbeddings(
-        model="models/gemini-embedding-001",
-        google_api_key=settings.GEMINI_API_KEY,
-    )
+    if _EMBEDDING_MODEL is None:
+        _EMBEDDING_MODEL = HuggingFaceEmbeddings(
+            model_name="BAAI/bge-m3",
+            model_kwargs={"device": "cpu"},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+
+    return _EMBEDDING_MODEL

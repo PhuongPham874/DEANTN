@@ -1,8 +1,6 @@
 import json
 
-from django.conf import settings
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
+from chatbot.services.deepseek_client import DeepSeekClient
 
 
 USER_CONTEXT_SYSTEM_PROMPT = """
@@ -30,14 +28,7 @@ Nguyên tắc trả lời:
 
 class UserContextChatService:
     def __init__(self):
-        if not settings.GEMINI_API_KEY:
-            raise ValueError("Thiếu GEMINI_API_KEY trong file .env")
-
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0.3,
-            google_api_key=settings.GEMINI_API_KEY,
-        )
+        self.llm = DeepSeekClient()
 
     def _format_chat_history(self, chat_history: list | None) -> str:
         if not chat_history:
@@ -69,9 +60,7 @@ class UserContextChatService:
             indent=2,
         )
 
-        prompt = f"""
-{USER_CONTEXT_SYSTEM_PROMPT}
-
+        user_prompt = f"""
 Lịch sử hội thoại:
 {history_text}
 
@@ -85,25 +74,21 @@ Trả lời:
 """
 
         try:
-            response = self.llm.invoke(prompt)
+            answer = self.llm.chat(
+                system_prompt=USER_CONTEXT_SYSTEM_PROMPT,
+                user_prompt=user_prompt,
+                temperature=0.3,
+                model="deepseek-chat",
+            )
             return {
-                "answer": response.content,
+                "answer": answer,
                 "sources": [],
                 "mode": "user_context_llm",
                 "context_used": list(user_context.keys()),
-            }
-        except ChatGoogleGenerativeAIError as e:
-            return {
-                "answer": "Không thể truy vấn AI cho dữ liệu cá nhân lúc này. Vui lòng kiểm tra lại Gemini API.",
-                "sources": [],
-                "mode": "user_context_llm",
-                "context_used": list(user_context.keys()),
-                "error": str(e),
             }
         except Exception as e:
             return {
-                
-                "answer": f"Lỗi khi xử lý dữ liệu: {str(e)}",
+                "answer": "Không thể truy vấn AI cho dữ liệu cá nhân lúc này. Vui lòng kiểm tra lại DeepSeek API.",
                 "sources": [],
                 "mode": "user_context_llm",
                 "context_used": list(user_context.keys()),

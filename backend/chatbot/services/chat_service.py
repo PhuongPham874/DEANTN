@@ -118,6 +118,8 @@ class ChatService:
             "bảo quản",
             "thực phẩm nào",
             "ăn gì để",
+            "nên",
+            "gợi ý",
             "nên ăn gì sau khi tập",
             "lợi ích",
             "tác dụng",

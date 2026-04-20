@@ -1,11 +1,9 @@
 from pathlib import Path
 
-from django.conf import settings
-from langchain_google_genai import ChatGoogleGenerativeAI
-
 from chatbot.prompts.rag_prompt import RAG_SYSTEM_PROMPT, RAG_HUMAN_TEMPLATE
 from chatbot.rag.embedding import get_embedding_model
 from chatbot.rag.vector_store import load_faiss_index, get_retriever
+from chatbot.services.deepseek_client import DeepSeekClient
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FAISS_INDEX_DIR = BASE_DIR / "knowledge_base" / "faiss_index"
@@ -13,9 +11,6 @@ FAISS_INDEX_DIR = BASE_DIR / "knowledge_base" / "faiss_index"
 
 class RAGService:
     def __init__(self):
-        if not settings.GEMINI_API_KEY:
-            raise ValueError("Thiếu GEMINI_API_KEY trong file .env")
-
         if not FAISS_INDEX_DIR.exists():
             raise FileNotFoundError(
                 "Chưa tìm thấy FAISS index. Hãy gọi API build-index trước."
@@ -27,11 +22,7 @@ class RAGService:
             self.embedding_model,
         )
         self.retriever = get_retriever(self.vector_store, k=4)
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0.2,
-            google_api_key=settings.GEMINI_API_KEY,
-        )
+        self.llm = DeepSeekClient()
 
     def _format_chat_history(self, chat_history: list | None) -> str:
         if not chat_history:
@@ -67,16 +58,18 @@ class RAGService:
         context = "\n\n".join(doc.page_content for doc in docs)
         history_text = self._format_chat_history(chat_history)
 
-        prompt = f"""{RAG_SYSTEM_PROMPT}
+        user_prompt = RAG_HUMAN_TEMPLATE.format(
+            chat_history=history_text,
+            context=context,
+            question=question,
+        )
 
-    {RAG_HUMAN_TEMPLATE.format(
-        chat_history=history_text,
-        context=context,
-        question=question
-    )}
-    """
-
-        response = self.llm.invoke(prompt)
+        answer = self.llm.chat(
+            system_prompt=RAG_SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+            temperature=0.2,
+            model="deepseek-chat",
+        )
 
         sources = []
         for doc in docs:
@@ -85,6 +78,7 @@ class RAGService:
                 sources.append(source_name)
 
         return {
-            "answer": response.content,
+            "answer": answer,
+            "sources": sources,
             "mode": "rag",
         }

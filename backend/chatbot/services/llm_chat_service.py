@@ -1,5 +1,4 @@
-from django.conf import settings
-from langchain_google_genai import ChatGoogleGenerativeAI
+from chatbot.services.deepseek_client import DeepSeekClient
 
 
 GENERAL_SYSTEM_PROMPT = """
@@ -20,14 +19,7 @@ Nguyên tắc trả lời:
 
 class LLMChatService:
     def __init__(self):
-        if not settings.GEMINI_API_KEY:
-            raise ValueError("Thiếu GEMINI_API_KEY trong file .env")
-
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0.4,
-            google_api_key=settings.GEMINI_API_KEY,
-        )
+        self.llm = DeepSeekClient()
 
     def _format_chat_history(self, chat_history: list | None) -> str:
         if not chat_history:
@@ -53,9 +45,7 @@ class LLMChatService:
     def ask(self, question: str, chat_history: list | None = None):
         history_text = self._format_chat_history(chat_history)
 
-        prompt = f"""
-{GENERAL_SYSTEM_PROMPT}
-
+        user_prompt = f"""
 Lịch sử hội thoại:
 {history_text}
 
@@ -65,10 +55,15 @@ Câu hỏi hiện tại:
 Trả lời:
 """
 
-        response = self.llm.invoke(prompt)
+        answer = self.llm.chat(
+            system_prompt=GENERAL_SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+            temperature=0.4,
+            model="deepseek-chat",
+        )
 
         return {
-            "answer": response.content,
+            "answer": answer,
             "sources": [],
             "mode": "llm_direct",
         }

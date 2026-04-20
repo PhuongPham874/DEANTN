@@ -69,22 +69,22 @@ const unitOptions: OptionItem[] = [
   { label: "lọ", value: "lọ" },
 ];
 
-const groupOptions: OptionItem[] = [
-  { label: "Chọn nhóm", value: "" },
-  { label: "Rau củ", value: "rau củ" },
-  { label: "Thịt", value: "thịt" },
-  { label: "Cá - Hải sản", value: "cá-hải sản" },
-  { label: "Sữa - Trứng", value: "sữa-trứng" },
-  { label: "Trái cây", value: "trái cây" },
-  { label: "Gia vị", value: "gia vị" },
-  { label: "Khác", value: "khác" },
-];
+  const groupOptions: OptionItem[] = [
+    { label: "Chọn nhóm", value: "" },
+    { label: "Rau củ", value: "Rau củ" },
+    { label: "Thịt", value: "Thịt" },
+    { label: "Cá - Hải sản", value: "Cá-hải sản" },
+    { label: "Sữa - Trứng", value: "Sữa-trứng" },
+    { label: "Trái cây", value: "Trái cây" },
+    { label: "Gia vị", value: "Gia vị" },
+    { label: "Khác", value: "Khác" },
+  ];
 
-const categoryOptions: OptionItem[] = [
-  { label: "Chọn loại", value: "" },
-  { label: "Thực phẩm", value: "thực phẩm" },
-  { label: "Gia vị", value: "gia vị" },
-];
+  const categoryOptions: OptionItem[] = [
+    { label: "Chọn loại", value: "" },
+    { label: "Thực phẩm", value: "Thực phẩm" },
+    { label: "Gia vị", value: "Gia vị" },
+  ];
 
 function createInitialDraft(): DraftState {
   return {

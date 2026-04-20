@@ -8,7 +8,6 @@ from chatbot.rag.vector_store import build_faiss_index, save_faiss_index
 BASE_DIR = Path(__file__).resolve().parent.parent
 KNOWLEDGE_DIR = BASE_DIR / "knowledge_base"
 FILES = [
-    ("knowledge_logic.docx", "knowledge_logic"),
     ("faq.docx", "faq"),
     ("user_guide.docx", "user_guide"),
 ]
