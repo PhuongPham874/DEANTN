@@ -146,7 +146,7 @@ export default function ChatbotScreen() {
             onPress={() => router.back()}
             activeOpacity={0.85}
           >
-            <Ionicons name="chevron-back" size={24} color={TEXT} />
+            <Ionicons name="chevron-back" size={24} color={ PRIMARY} />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>EatWise Bot</Text>

@@ -43,8 +43,8 @@ type IngredientDraft = {
   ingredient_name: string;
   quantity: string;
   unit: string;
-  group_name: IngredientGroupKey;
-  category: IngredientCategoryKey;
+  group_name: IngredientGroupKey | "";
+  category: IngredientCategoryKey | "";
 };
 
 type Params = {
@@ -67,6 +67,7 @@ const INGREDIENT_GROUP_OPTIONS: {
   label: string;
   value: IngredientGroupKey;
 }[] = [
+  { label: "Chọn nhóm", value: "" },
   { label: "Rau củ", value: "rau củ" },
   { label: "Thịt", value: "thịt" },
   { label: "Cá - Hải sản", value: "cá-hải sản" },
@@ -80,6 +81,7 @@ const INGREDIENT_CATEGORY_OPTIONS: {
   label: string;
   value: IngredientCategoryKey;
 }[] = [
+  { label: "Chọn loại", value: "" },
   { label: "Thực phẩm", value: "thực phẩm" },
   { label: "Gia vị", value: "gia vị" },
 ];
@@ -88,8 +90,8 @@ const DEFAULT_INGREDIENT_DRAFT: IngredientDraft = {
   ingredient_name: "",
   quantity: "",
   unit: "",
-  group_name: "khác",
-  category: "thực phẩm",
+  group_name: "",
+  category: "",
 };
 const ingredientUnitOptions = [
   { label: "Chọn đơn vị", value: "" },
@@ -173,6 +175,8 @@ export function useIndividualDishFormUI({
   const [methodModalVisible, setMethodModalVisible] = useState(false);
   const [methodDraft, setMethodDraft] = useState("");
   const [methodDraftError, setMethodDraftError] = useState("");
+
+  
 
   useEffect(() => {
     if (!isEditMode || !dishId || initialData) return;
