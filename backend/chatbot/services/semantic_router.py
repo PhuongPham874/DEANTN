@@ -10,6 +10,7 @@ class SemanticRouter:
 
         self.route_examples: Dict[str, List[str]] = {
             "rag": [
+                "Hướng dẫn tôi thực hiện chức năng"
                 "Chức năng thực đơn tuần hoạt động như thế nào?",
                 "Làm sao sử dụng danh sách mua sắm trong ứng dụng?",
                 "FAQ của ứng dụng nói gì về chatbot?",

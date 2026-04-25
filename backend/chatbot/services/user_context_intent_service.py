@@ -63,17 +63,16 @@ class UserContextIntentService:
     }
 
     PERSONAL_KEYWORDS = [
-        "tôi",
         "của tôi",
-        "hôm nay",
-        "kho",
-        "tủ lạnh",
-        "nguyên liệu",
+        "hôm nay của tôi",
+        "kho của tôi",
+        "tủ lạnh của tôi",
+        "nguyên liệu của tôi",
         "món yêu thích",
         "danh sách mua sắm",
-        "bữa sáng",
-        "bữa trưa",
-        "bữa tối",
+        "bữa sáng của tôi",
+        "bữa trưa của tôi",
+        "bữa tối của tôi",
     ]
 
     @classmethod

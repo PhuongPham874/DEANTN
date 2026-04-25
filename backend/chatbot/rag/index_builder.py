@@ -10,6 +10,7 @@ KNOWLEDGE_DIR = BASE_DIR / "knowledge_base"
 FILES = [
     ("faq.docx", "faq"),
     ("user_guide.docx", "user_guide"),
+    ("user_guide_p2.docx", "user_guide_p2"),
 ]
 FAISS_INDEX_DIR = BASE_DIR / "knowledge_base" / "faiss_index"
 

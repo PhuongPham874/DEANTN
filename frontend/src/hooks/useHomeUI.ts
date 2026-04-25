@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useFocusEffect } from "expo-router";
+import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
   getHomeDishes,
@@ -160,6 +161,7 @@ export function useHomeUI() {
 
       try {
         await toggleFavorite(dishId);
+        Alert.alert("Thông báo", "Thêm món vào yêu thích thành công");
         await fetchData(search, selectedCategory, { silent: true });
       } catch (err) {
         if (isAuthExpiredError(err)) {

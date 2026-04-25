@@ -52,6 +52,9 @@ export function useChatbotUI() {
 
   const hasMessages = messages.length > 0;
 
+  const APP_FEATURE_ANSWER =
+  "Chào bạn! Mình là trợ lý ảo hỗ trợ ứng dụng quản lý ẩm thực. Ứng dụng giúp bạn tối ưu hóa việc ăn uống qua các tính năng: Quản lý tài khoản bảo mật; Lưu trữ kho món ăn cá nhân; Lập kế hoạch thực đơn tuần thông minh với logic sao chép linh hoạt. Đặc biệt, hệ thống tự động đồng bộ thực đơn vào danh sách mua sắm và cập nhật kho thực phẩm khi hoàn tất, giúp quản lý nguyên liệu chính xác, tránh lãng phí. Với giao diện thân thiện và quy trình tự động hóa, mình sẽ đồng hành cùng bạn xây dựng lối sống khoa học và tiện lợi mỗi ngày.";
+
   const canSend = useMemo(() => {
     return input.trim().length > 0 && !sending;
   }, [input, sending]);
@@ -142,9 +145,21 @@ export function useChatbotUI() {
 
       setMessages(nextMessages);
       setInput("");
-      setSending(true);
 
       scrollToEnd();
+
+      if (text === "Giải thích chức năng của ứng dụng") {
+        const botMessage = createMessage("assistant", APP_FEATURE_ANSWER, {
+          mode: "default_quickask",
+          intent: "app_feature",
+        });
+
+        setMessages((prev) => [...prev, botMessage]);
+        scrollToEnd();
+        return;
+      }
+
+      setSending(true);
 
       try {
         await sendToBot(text, nextMessages);

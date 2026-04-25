@@ -57,16 +57,12 @@ class ChatService:
         lowered = (message or "").strip().lower()
 
         strong_personal_markers = [
-            "hôm nay tôi",
             "của tôi",
             "kho của tôi",
             "thực đơn của tôi",
             "món yêu thích của tôi",
             "danh sách mua sắm của tôi",
             "tôi còn gì",
-            "tôi cần mua gì",
-            "tôi nên ăn gì",
-            "tôi nên nấu gì",
             "bữa sáng của tôi",
             "bữa trưa của tôi",
             "bữa tối của tôi",
@@ -78,9 +74,9 @@ class ChatService:
         lowered = (message or "").strip().lower()
 
         rag_markers = [
+            "cách",
             "chức năng",
             "tính năng",
-            "hướng dẫn",
             "faq",
             "fqa",
             "rag",
@@ -110,6 +106,7 @@ class ChatService:
         lowered = (message or "").strip().lower()
 
         general_markers = [
+            "gợi ý",
             "bao nhiêu calo",
             "giàu protein",
             "giảm cân",
@@ -119,7 +116,6 @@ class ChatService:
             "thực phẩm nào",
             "ăn gì để",
             "nên",
-            "gợi ý",
             "nên ăn gì sau khi tập",
             "lợi ích",
             "tác dụng",

@@ -172,9 +172,9 @@ export default function ChatbotScreen() {
             <View style={styles.quickWrap}>
               <TouchableOpacity
                 style={styles.quickChip}
-                onPress={() => quickAsk("Hôm nay nên ăn gì?")}
+                onPress={() => quickAsk("Gợi ý thực đơn phù hợp")}
               >
-                <Text style={styles.quickChipText}>Hôm nay nên ăn gì?</Text>
+                <Text style={styles.quickChipText}>Gợi ý thực đơn phù hợp</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
