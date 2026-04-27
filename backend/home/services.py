@@ -112,7 +112,7 @@ class HomeService:
 
                 return {
                     "success": True,
-                    "message": "Đã bỏ món khỏi danh sách yêu thích",
+                    "message": "Xóa món khỏi danh sách yêu thích thành công",
                     "data": {
                         "source_dish_id": source_dish_id,
                         "individual_dish_id": individual_dish_id,
@@ -157,7 +157,7 @@ class HomeService:
 
             return {
                 "success": True,
-                "message": "Đã thêm món vào danh sách yêu thích",
+                "message": "Thêm món vào yêu thích thành công",
                 "data": {
                     "source_dish_id": dish.dish_id,
                     "individual_dish_id": copied_dish.dish_id,

@@ -10,7 +10,7 @@ class SemanticRouter:
 
         self.route_examples: Dict[str, List[str]] = {
             "rag": [
-                "Hướng dẫn tôi thực hiện chức năng"
+                "Hướng dẫn tôi thực hiện chức năng trong ứng dụng"
                 "Chức năng thực đơn tuần hoạt động như thế nào?",
                 "Làm sao sử dụng danh sách mua sắm trong ứng dụng?",
                 "FAQ của ứng dụng nói gì về chatbot?",
@@ -41,10 +41,8 @@ class SemanticRouter:
                 "Tôi còn nguyên liệu gì trong kho thực phẩm?",
                 "Danh sách mua sắm hiện tại của tôi có gì?",
                 "Tôi cần mua gì hôm nay?",
-                "Tôi nên nấu món gì từ nguyên liệu đang có?",
                 "Tuần này tôi đã lên thực đơn chưa?",
                 "Món yêu thích của tôi có gì?",
-                "Từ đồ trong kho của tôi hãy gợi ý món ăn.",
             ],
         }
 
@@ -69,13 +67,6 @@ class SemanticRouter:
                 "Hôm nay tôi còn thiếu nguyên liệu gì?",
                 "Xem danh sách mua sắm hiện tại.",
                 "Tôi có những món nào cần mua?",
-            ],
-            "cook_suggestion": [
-                "Tôi nên nấu gì hôm nay?",
-                "Gợi ý món ăn từ nguyên liệu tôi đang có.",
-                "Từ đồ trong kho tôi nấu được món gì?",
-                "Hãy gợi ý món cho tôi dựa trên thực phẩm hiện có.",
-                "Tôi có thể nấu món gì với nguyên liệu đang có?",
             ],
             "general_user_context": [
                 "Tình hình ăn uống của tôi hiện tại thế nào?",

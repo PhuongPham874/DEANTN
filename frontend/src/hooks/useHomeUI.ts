@@ -152,16 +152,26 @@ export function useHomeUI() {
     await fetchData(search, selectedCategory);
   };
 
+  const togglingFavoriteRef = useRef<number | null>(null);
+
   const onToggleFavorite = useCallback(
     async (dishId: number) => {
-      if (togglingFavoriteId === dishId) return;
+      if (togglingFavoriteRef.current === dishId) return;
 
+      togglingFavoriteRef.current = dishId;
       setTogglingFavoriteId(dishId);
       setError("");
 
       try {
-        await toggleFavorite(dishId);
-        Alert.alert("Thông báo", "Thêm món vào yêu thích thành công");
+        const response = await toggleFavorite(dishId);
+
+        Alert.alert(
+          "Thông báo",
+          response.data?.is_favorite
+            ? "Đã thêm món vào danh sách yêu thích"
+            : "Đã bỏ món khỏi danh sách yêu thích"
+        );
+
         await fetchData(search, selectedCategory, { silent: true });
       } catch (err) {
         if (isAuthExpiredError(err)) {
@@ -171,10 +181,11 @@ export function useHomeUI() {
 
         setError(getErrorMessage(err, "Không thể cập nhật yêu thích"));
       } finally {
+        togglingFavoriteRef.current = null;
         setTogglingFavoriteId(null);
       }
     },
-    [togglingFavoriteId, fetchData, search, selectedCategory, handleAuthExpired]
+    [fetchData, search, selectedCategory, handleAuthExpired]
   );
 
   const onPressDish = (dishId: number) => {

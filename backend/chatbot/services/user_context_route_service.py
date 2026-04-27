@@ -23,7 +23,6 @@ class UserContextRouteService:
         intent = self.intent_service.detect_intent(message)
         if not intent:
             return {
-                "answer": "Câu hỏi này chưa được nhận diện là câu hỏi cá nhân hóa.",
                 "sources": [],
                 "mode": "user_context_llm",
                 "intent": None,

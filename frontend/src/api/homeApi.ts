@@ -31,8 +31,10 @@ export type HomeResponse = {
 export type ToggleFavoriteResponse = {
   message: string;
   data: {
-    dish_id: number;
+    source_dish_id: number;
+    individual_dish_id: number | null;
     is_favorite: boolean;
+    deleted: boolean;
   };
 };
 

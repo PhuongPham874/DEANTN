@@ -74,7 +74,6 @@ class ChatService:
         lowered = (message or "").strip().lower()
 
         rag_markers = [
-            "cách",
             "chức năng",
             "tính năng",
             "faq",
@@ -83,7 +82,6 @@ class ChatService:
             "ứng dụng",
             "app",
             "logic",
-            "cách dùng",
             "hoạt động như thế nào",
             "xử lý như thế nào",
             "màn hình",
@@ -92,9 +90,6 @@ class ChatService:
             "quy trình",
             "luồng",
             "nghiệp vụ",
-            "thực đơn tuần",
-            "danh sách mua sắm",
-            "kho thực phẩm",
             "chatbot trong ứng dụng",
             "xóa thực đơn",
             "build index",
@@ -107,6 +102,7 @@ class ChatService:
 
         general_markers = [
             "gợi ý",
+            "cách làm",
             "bao nhiêu calo",
             "giàu protein",
             "giảm cân",
@@ -125,6 +121,8 @@ class ChatService:
             "chất béo",
             "uống gì",
             "kiêng gì",
+            "sức khỏe",
+            
         ]
 
         return any(marker in lowered for marker in general_markers)
@@ -225,6 +223,20 @@ class ChatService:
                 chat_history=chat_history,
             )
 
+            if result.get("mode") == "route_not_matched":
+                fallback_result = self.llm_service.ask(
+                    question=message,
+                    chat_history=chat_history,
+                )
+
+                return self._build_response(
+                    answer=fallback_result.get("answer", ""),
+                    mode=fallback_result.get("mode", "llm_direct"),
+                    sources=fallback_result.get("sources", []),
+                    route_scores=route_scores,
+                    route_confidence=route_confidence,
+                )
+
             return self._build_response(
                 answer=result.get("answer", ""),
                 mode=result.get("mode", "user_context_llm"),
@@ -241,6 +253,20 @@ class ChatService:
                 question=message,
                 chat_history=chat_history,
             )
+
+            if result.get("mode") == "rag_not_found":
+                fallback_result = self.llm_service.ask(
+                    question=message,
+                    chat_history=chat_history,
+                )
+
+                return self._build_response(
+                    answer=fallback_result.get("answer", ""),
+                    mode=fallback_result.get("mode", "llm_direct"),
+                    sources=fallback_result.get("sources", []),
+                    route_scores=route_scores,
+                    route_confidence=route_confidence,
+                )
 
             return self._build_response(
                 answer=result.get("answer", ""),
