@@ -18,6 +18,12 @@ class ShoppingList(models.Model):
         related_name="shopping_lists",
     )
 
+    plan = models.ForeignKey(
+        MealPlan,
+        on_delete=models.CASCADE,
+        related_name="shopping_lists",
+    )
+
     list_name = models.CharField(max_length=255)
     list_type = models.CharField(max_length=10, choices=LIST_TYPE_CHOICES)
     created_date = models.DateTimeField(auto_now_add=True)
@@ -27,6 +33,7 @@ class ShoppingList(models.Model):
         indexes = [
             models.Index(fields=["user", "list_type"]),
             models.Index(fields=["user", "created_date"]),
+            models.Index(fields=["plan", "list_type"]),
         ]
 
     def __str__(self):
@@ -47,12 +54,6 @@ class ShoppingItem(models.Model):
         related_name="items",
     )
 
-    plan = models.ForeignKey(
-        MealPlan,
-        on_delete=models.CASCADE,
-        related_name="shopping_items",
-    )
-
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
@@ -71,7 +72,6 @@ class ShoppingItem(models.Model):
         db_table = "shopping_item"
         indexes = [
             models.Index(fields=["shopping", "status"]),
-            models.Index(fields=["plan", "ingredient"]),
         ]
 
     def __str__(self):

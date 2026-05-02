@@ -123,15 +123,13 @@ class ShoppingListService:
             else:
                 pending_items.append(built_item)
 
-        first_item = items[0] if items else None
-
         return {
             "shopping_id": shopping_list.shopping_id,
             "list_name": shopping_list.list_name,
             "list_type": shopping_list.list_type,
             "source_date": shopping_list.source_date,
             "created_date": shopping_list.created_date,
-            "plan_id": first_item.plan_id if first_item else None,
+            "plan_id": shopping_list.plan_id, 
             "pending_count": len(pending_items),
             "bought_count": len(bought_items),
             "pending_items": pending_items,
@@ -228,6 +226,7 @@ class ShoppingListService:
 
         shopping_list = ShoppingList.objects.create(
             user=user,
+            plan=plan,
             list_name=ShoppingListService.build_week_list_name(week_start, week_end),
             list_type="week",
             source_date=None,
@@ -237,7 +236,6 @@ class ShoppingListService:
             [
                 ShoppingItem(
                     shopping=shopping_list,
-                    plan=plan,
                     ingredient_id=item["ingredient_id"],
                     quantity=item["quantity"],
                     unit=item["unit"],
@@ -297,6 +295,7 @@ class ShoppingListService:
 
         shopping_list = ShoppingList.objects.create(
             user=user,
+            plan=plan,
             list_name=ShoppingListService.build_day_list_name(target_date),
             list_type="day",
             source_date=target_date,
@@ -306,7 +305,6 @@ class ShoppingListService:
             [
                 ShoppingItem(
                     shopping=shopping_list,
-                    plan=plan,
                     ingredient_id=item["ingredient_id"],
                     quantity=item["quantity"],
                     unit=item["unit"],
@@ -521,18 +519,9 @@ class ShoppingListService:
         ingredient, _, normalized_data = IngredientInputService.get_or_create_ingredient(
             validated_data
         )
-        first_item = shopping_list.items.order_by("item_id").first()
-        if not first_item:
-            return {
-                "success": False,
-                "message": "Danh sách mua sắm chưa có plan để thêm mục mới",
-                "data": None,
-            }
-
         item = ShoppingItem.objects.create(
             shopping=shopping_list,
             ingredient=ingredient,
-            plan=first_item.plan,
             quantity=normalized_data["quantity"],
             unit=normalized_data["unit"],
         )
@@ -571,7 +560,7 @@ class ShoppingListService:
             user=user,
             list_type="day",
             source_date=target_date,
-            items__plan=plan,
+            plan=plan,
         ).distinct().first()
 
     @staticmethod
@@ -579,7 +568,7 @@ class ShoppingListService:
         return ShoppingList.objects.filter(
             user=user,
             list_type="week",
-            items__plan=plan,
+            plan=plan,
         ).distinct().first()
 
     @staticmethod
@@ -608,7 +597,7 @@ class ShoppingListService:
         if not shopping_list:
             return False
 
-        shopping_list.items.filter(plan=plan).delete() #Xóa trong record shopping item của plan_id = plan và shopping_id = list mua sắm của target date
+        shopping_list.items.filter().delete() #Xóa trong record shopping item của plan_id = plan và shopping_id = list mua sắm của target date
         #Như vậy source date là để map với ngày được tạo shopping list chứ ko nó sẽ map với cả tuần (theo plan_id)
         #Lý do là vì khi xóa plan day -> trả về plan id và user id, với 2 trường này thì shopping list chỉ check đc các record thuộc planid và user id -> xóa toàn bộ record trong plan id chứ không phải mỗi ngày muốn xóa thôi
         shopping_list.delete()
@@ -624,7 +613,7 @@ class ShoppingListService:
         if not shopping_list:
             return False
 
-        shopping_list.items.filter(plan=plan).delete()
+        shopping_list.items.filter().delete()
         shopping_list.delete()
         return True
 
@@ -634,7 +623,7 @@ class ShoppingListService:
         shopping_lists = ShoppingList.objects.filter(
             user=user,
             list_type="day",
-            items__plan=plan,
+            plan=plan,
         ).distinct()
 
         if not shopping_lists.exists():
@@ -643,7 +632,7 @@ class ShoppingListService:
         deleted_count = shopping_lists.count()
 
         for shopping_list in shopping_lists:
-            shopping_list.items.filter(plan=plan).delete()
+            shopping_list.items.filter().delete()
             shopping_list.delete()
 
         return deleted_count
