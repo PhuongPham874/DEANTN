@@ -52,7 +52,7 @@ class RAGService:
             return {
                 "answer": "Hiện tại tôi chưa tìm thấy thông tin phù hợp trong tài liệu.",
                 "sources": [],
-                "mode": "rag",
+                "mode": "rag_not_found",
             }
 
         context = "\n\n".join(doc.page_content for doc in docs)

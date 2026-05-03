@@ -224,8 +224,19 @@ class ChatService:
             )
 
             if result.get("mode") == "route_not_matched":
+                enhanced_question = f"""
+                Câu hỏi của người dùng:
+                {message}
+
+                Lưu ý:
+                Hiện tại hệ thống không lấy được dữ liệu cá nhân tương ứng.
+                Hãy trả lời một cách hữu ích và tự nhiên nhất có thể.
+
+                Đồng thời, khuyến khích người dùng kiểm tra lại thông tin tại chức năng tương ứng trong ứng dụng nếu cần.
+                """
+
                 fallback_result = self.llm_service.ask(
-                    question=message,
+                    question=enhanced_question,
                     chat_history=chat_history,
                 )
 
@@ -255,8 +266,14 @@ class ChatService:
             )
 
             if result.get("mode") == "rag_not_found":
+                enhanced_question = f"""
+                Người dùng hỏi: {message}
+                Hệ thống không tìm thấy dữ liệu trong knowledge base.
+                Hãy đọc câu hỏi, nếu không thuộc thông tin nội bộ về chức năng ứng dụng thì trả lời cho người dùng. Nếu là thông tin về chức năng ứng dụng thì trả lời thiên hướng khuyến khích người dùng liên hệ người hướng dẫn để nhận thông tin chính xác.
+                """
+
                 fallback_result = self.llm_service.ask(
-                    question=message,
+                    question=enhanced_question,
                     chat_history=chat_history,
                 )
 

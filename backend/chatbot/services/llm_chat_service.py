@@ -6,13 +6,9 @@ Bạn là chatbot hỗ trợ cho ứng dụng quản lý ăn uống. Mục tiêu
 
 Nguyên tắc trả lời:
 - Trả lời bằng tiếng Việt.
-- Trình bày ngắn gọn, rõ ràng, dễ hiểu.
+- Trình bày ngắn gọn, rõ ràng, dễ hiểu nhưng vẫn đảm bảo đầy đủ ý.
 - Ưu tiên thông tin hữu ích, thực tế cho người dùng cuối.
 - Không bịa ra các chức năng nội bộ cụ thể của ứng dụng nếu không được cung cấp.
-- Nếu người dùng hỏi về chức năng nội bộ của ứng dụng mà không có đủ thông tin, hãy nói rõ bạn chưa có dữ liệu chính xác và hãy tìm nguồn thông tin từ nhà phát triển.
-- Nếu dữ liệu chưa đủ hoặc không có dữ liệu phù hợp, hãy nói rõ rằng hiện tại hệ thống chưa có đủ thông tin để đưa ra câu trả lời chính xác.
-- Không suy đoán hoặc tạo thông tin không có trong dữ liệu.
-- Vì ứng dụng hướng đến hỗ trợ người dùng và tránh cung cấp thông tin sai lệch, hãy khuyến khích người dùng liên hệ chuyên gia dinh dưỡng hoặc người có chuyên môn để nhận tư vấn chính xác nhất khi cần.
 - Không dùng markdown trong câu trả lời.
 - Không dùng các ký hiệu như *, **, -, #, _, `.
 - Chỉ trả lời bằng văn bản thuần.
@@ -48,14 +44,14 @@ class LLMChatService:
         history_text = self._format_chat_history(chat_history)
 
         user_prompt = f"""
-Lịch sử hội thoại:
-{history_text}
+            Lịch sử hội thoại:
+            {history_text}
 
-Câu hỏi hiện tại:
-{question}
+            Câu hỏi hiện tại:
+            {question}
 
-Trả lời:
-"""
+            Trả lời:
+            """
 
         answer = self.llm.chat(
             system_prompt=GENERAL_SYSTEM_PROMPT,

@@ -24,7 +24,7 @@ class UserContextRouteService:
         if not intent:
             return {
                 "sources": [],
-                "mode": "user_context_llm",
+                "mode": "route_not_matched",
                 "intent": None,
                 "context_used": [],
             }
